@@ -5,6 +5,8 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace TalesWeaver_Cursor_Assistance
 {
@@ -176,6 +178,7 @@ namespace TalesWeaver_Cursor_Assistance
                 this.mCursorForm.Show();
                 this.mIsLoadForm = true;
                 this.SetSkillShape();
+                this.StartSpaceToEnterHook();
             }
             catch (Exception ex)
             {
@@ -227,6 +230,7 @@ namespace TalesWeaver_Cursor_Assistance
                 {
                     this.mSkillForm.Hide();
                 }
+                this.StopSpaceToEnterHook();
             }
             catch (Exception)
             {
@@ -1054,6 +1058,139 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 MessageBox.Show("투명도 조절 중 오류 발생: " + ex.Message);
             }
+        }
+
+        #endregion
+
+        #region [9. 1~5 키 입력 시 지정 시간 동안 Space를 Enter로 치환]
+
+        private const int WH_KEYBOARD_LL = 13;
+        private const int WM_KEYDOWN = 0x0100;
+        private const int WM_SYSKEYDOWN = 0x0104;
+        private const int VK_SPACE = 0x20;
+        private const int VK_RETURN = 0x0D;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        private LowLevelKeyboardProc _keyboardProc;
+        private IntPtr _keyboardHookId = IntPtr.Zero;
+
+        // Space를 Enter로 변환할 지속 시간 (ms) - UI 연동 전 기본값
+        private int _spaceToEnterDurationMs = 1000;
+
+        // 해당 시각(Environment.TickCount) 이전까지 Space를 Enter로 취급
+        private long _spaceAsEnterUntilTick = 0;
+        private readonly object _spaceEnterLock = new object();
+
+        private static long GetSafeTickCount64()
+        {
+            // Environment.TickCount(int)의 부호 반전/오버플로 구간을 보정하여 64비트 단조 증가 값으로 변환
+            return (long)(uint)Environment.TickCount;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        private void StartSpaceToEnterHook()
+        {
+            if (_keyboardHookId != IntPtr.Zero) return;
+
+            _keyboardProc = KeyboardHookCallback;
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                IntPtr hMod = curModule != null ? GetModuleHandle(curModule.ModuleName) : IntPtr.Zero;
+                _keyboardHookId = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, hMod, 0);
+            }
+        }
+
+        private void StopSpaceToEnterHook()
+        {
+            if (_keyboardHookId == IntPtr.Zero) return;
+
+            UnhookWindowsHookEx(_keyboardHookId);
+            _keyboardHookId = IntPtr.Zero;
+            _keyboardProc = null;
+        }
+
+        private bool IsTargetForegroundActive()
+        {
+            // 현재 앱(Form1 및 오버레이 창)이 포그라운드일 때는 키 치환을 건너뜀
+            IntPtr fg = GetForegroundWindow();
+            if (fg == IntPtr.Zero) return false;
+
+            GetWindowThreadProcessId(fg, out uint fgPid);
+            return fgPid != (uint)Process.GetCurrentProcess().Id;
+        }
+
+        private static bool IsTriggerNumberKey(int vkCode)
+        {
+            // 상단 숫자키 1~5 (0x31~0x35) 및 넘패드 1~5 (0x61~0x65)
+            return (vkCode >= 0x31 && vkCode <= 0x35) || (vkCode >= 0x61 && vkCode <= 0x65);
+        }
+
+        private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                int msg = wParam.ToInt32();
+                if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+                {
+                    int vkCode = Marshal.ReadInt32(lParam);
+
+                    if (IsTriggerNumberKey(vkCode) && IsTargetForegroundActive())
+                    {
+                        int duration = Math.Max(0, _spaceToEnterDurationMs);
+                        lock (_spaceEnterLock)
+                        {
+                            _spaceAsEnterUntilTick = GetSafeTickCount64() + duration;
+                        }
+                    }
+                    else if (vkCode == VK_SPACE && IsTargetForegroundActive())
+                    {
+                        bool shouldConvert;
+                        lock (_spaceEnterLock)
+                        {
+                            shouldConvert = GetSafeTickCount64() <= _spaceAsEnterUntilTick;
+                        }
+
+                        if (shouldConvert)
+                        {
+                            // 원래 Space 키 입력은 차단하고 Enter 키 다운/업 송출
+                            SendEnterKey();
+                            return (IntPtr)1;
+                        }
+                    }
+                }
+            }
+
+            return CallNextHookEx(_keyboardHookId, nCode, wParam, lParam);
+        }
+
+        private static void SendEnterKey()
+        {
+            keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
+            keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         }
 
         #endregion
