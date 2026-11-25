@@ -3,66 +3,126 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 
-// Token: 0x02000008 RID: 8
 internal partial class GdiForm : Form
 {
-	// Token: 0x0600000D RID: 13 RVA: 0x00002078 File Offset: 0x00000278
-	public GdiForm()
-	{
-		base.FormBorderStyle = FormBorderStyle.None;
-		base.TopMost = true;
-		base.ShowInTaskbar = false;
-		base.ControlBox = false;
-		this.AllowDrop = false;
-	}
+    private const int WS_EX_TRANSPARENT = 0x00000020;
+    private const int WS_EX_LAYERED = 0x00080000;
+    private const int WS_EX_NOACTIVATE = 0x08000000;
 
-	// Token: 0x0600000E RID: 14 RVA: 0x00002364 File Offset: 0x00000564
-	public void SetBitmap(Bitmap bitmap, byte opacity)
-	{
-		if (bitmap.PixelFormat != PixelFormat.Format32bppArgb)
-		{
-			throw new ApplicationException("The bitmap must be 32ppp with alpha-channel.");
-		}
-		IntPtr dc = Win32.GetDC(IntPtr.Zero);
-		IntPtr intPtr = Win32.CreateCompatibleDC(dc);
-		IntPtr intPtr2 = IntPtr.Zero;
-		IntPtr hObject = IntPtr.Zero;
-		try
-		{
-			intPtr2 = bitmap.GetHbitmap(Color.FromArgb(0));
-			hObject = Win32.SelectObject(intPtr, intPtr2);
-			Win32.Size size = new Win32.Size(bitmap.Width, bitmap.Height);
-			Win32.Point point = new Win32.Point(0, 0);
-			Win32.Point point2 = new Win32.Point(base.Left, base.Top);
-			Win32.BLENDFUNCTION blendfunction = default(Win32.BLENDFUNCTION);
-			blendfunction.BlendOp = 0;
-			blendfunction.BlendFlags = 0;
-			blendfunction.SourceConstantAlpha = opacity;
-			blendfunction.AlphaFormat = 1;
-			Win32.UpdateLayeredWindow(base.Handle, dc, ref point2, ref size, intPtr, ref point, 0, ref blendfunction, 2);
-			Win32.SetWindowLong(base.Handle, -20, (int)Win32.GetWindowLong(base.Handle, -20) | 32);
-		}
-		finally
-		{
-			Win32.ReleaseDC(IntPtr.Zero, dc);
-			if (intPtr2 != IntPtr.Zero)
-			{
-				Win32.SelectObject(intPtr, hObject);
-				Win32.DeleteObject(intPtr2);
-			}
-			Win32.DeleteDC(intPtr);
-		}
-	}
+    public GdiForm()
+    {
+        base.FormBorderStyle = FormBorderStyle.None;
+        base.TopMost = true;
+        base.ShowInTaskbar = false;
+        base.ControlBox = false;
+        this.AllowDrop = false;
+    }
 
-	// Token: 0x17000001 RID: 1
-	// (get) Token: 0x0600000F RID: 15 RVA: 0x000020A3 File Offset: 0x000002A3
-	protected override CreateParams CreateParams
-	{
-		get
-		{
-			CreateParams createParams = base.CreateParams;
-			createParams.ExStyle |= 524288;
-			return createParams;
-		}
-	}
+    public void SetBitmap(Bitmap bitmap, byte opacity)
+    {
+        if (bitmap == null)
+        {
+            throw new ArgumentNullException(nameof(bitmap));
+        }
+
+        if (bitmap.PixelFormat != PixelFormat.Format32bppArgb)
+        {
+            throw new ApplicationException("The bitmap must be 32bpp with alpha-channel.");
+        }
+
+        if (this.IsDisposed)
+        {
+            return;
+        }
+
+        if (!this.IsHandleCreated)
+        {
+            IntPtr _ = this.Handle;
+        }
+
+        IntPtr screenDc = IntPtr.Zero;
+        IntPtr memDc = IntPtr.Zero;
+        IntPtr hBitmap = IntPtr.Zero;
+        IntPtr oldBitmap = IntPtr.Zero;
+
+        try
+        {
+            screenDc = Win32.GetDC(IntPtr.Zero);
+            if (screenDc == IntPtr.Zero)
+            {
+                return;
+            }
+
+            memDc = Win32.CreateCompatibleDC(screenDc);
+            if (memDc == IntPtr.Zero)
+            {
+                return;
+            }
+
+            hBitmap = bitmap.GetHbitmap(Color.FromArgb(0));
+            if (hBitmap == IntPtr.Zero)
+            {
+                return;
+            }
+
+            oldBitmap = Win32.SelectObject(memDc, hBitmap);
+
+            Win32.Size size = new Win32.Size(bitmap.Width, bitmap.Height);
+            Win32.Point pointSource = new Win32.Point(0, 0);
+            Win32.Point topPos = new Win32.Point(base.Left, base.Top);
+
+            Win32.BLENDFUNCTION blend = new Win32.BLENDFUNCTION
+            {
+                BlendOp = Win32.AC_SRC_OVER,
+                BlendFlags = 0,
+                SourceConstantAlpha = opacity,
+                AlphaFormat = Win32.AC_SRC_ALPHA
+            };
+
+            Win32.UpdateLayeredWindow(
+                base.Handle,
+                screenDc,
+                ref topPos,
+                ref size,
+                memDc,
+                ref pointSource,
+                0,
+                ref blend,
+                Win32.ULW_ALPHA);
+        }
+        finally
+        {
+            if (memDc != IntPtr.Zero)
+            {
+                if (oldBitmap != IntPtr.Zero)
+                {
+                    Win32.SelectObject(memDc, oldBitmap);
+                }
+
+                Win32.DeleteDC(memDc);
+            }
+
+            if (hBitmap != IntPtr.Zero)
+            {
+                Win32.DeleteObject(hBitmap);
+            }
+
+            if (screenDc != IntPtr.Zero)
+            {
+                Win32.ReleaseDC(IntPtr.Zero, screenDc);
+            }
+        }
+    }
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            CreateParams createParams = base.CreateParams;
+            createParams.ExStyle |= WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+            return createParams;
+        }
+    }
+
+    protected override bool ShowWithoutActivation => true;
 }
