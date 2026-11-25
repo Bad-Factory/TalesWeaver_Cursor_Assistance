@@ -5,17 +5,24 @@ using System.Windows.Forms;
 
 namespace TalesWeaver_Cursor_Assistance
 {
-	// Token: 0x02000011 RID: 17
 	internal static class Program
 	{
-        // Token: 0x0600004E RID: 78
-        [DllImport("shcore.dll", SetLastError = true, EntryPoint = "SetProcessDpiAwareness")]
-        [return: MarshalAs(UnmanagedType.U4)]
-        public static extern int SetProcessDpiAwareness(Program.PROCESS_DPI_AWARENESS value);
-        [DllImport("user32.dll", SetLastError = true)]
+		private const int HWND_BROADCAST = 0xffff;
+		public static readonly int WM_SHOW_EXISTING_INSTANCE = RegisterWindowMessage("WM_TALESWEAVER_CURSOR_ASSISTANCE_SHOW");
+
+		[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+		private static extern int RegisterWindowMessage(string lpString);
+
+		[DllImport("user32.dll")]
+		private static extern bool PostMessage(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam);
+
+		[DllImport("shcore.dll", SetLastError = true, EntryPoint = "SetProcessDpiAwareness")]
+		[return: MarshalAs(UnmanagedType.U4)]
+		public static extern int SetProcessDpiAwareness(Program.PROCESS_DPI_AWARENESS value);
+
+		[DllImport("user32.dll", SetLastError = true)]
 		public static extern Program.DPI_AWARENESS_CONTEXT SetThreadDpiAwarenessContext(Program.DPI_AWARENESS_CONTEXT value);
 
-		// Token: 0x06000050 RID: 80 RVA: 0x00005078 File Offset: 0x00003278
 		[STAThread]
 		private static void Main()
 		{
@@ -25,40 +32,35 @@ namespace TalesWeaver_Cursor_Assistance
 			}
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
+
 			string name = "TalesWeaver_Cursor_Assistance";
-			bool flag;
-			new Mutex(true, name, out flag);
-			if (!flag)
+			bool createdNew;
+			using (Mutex mutex = new Mutex(true, name, out createdNew))
 			{
-				MessageBox.Show("It is already running.");
-				return;
+				if (!createdNew)
+				{
+					// 기존 실행 중인 트레이 앱에 창 복원 메시지 전달 (팝업 미출력)
+					PostMessage((IntPtr)HWND_BROADCAST, WM_SHOW_EXISTING_INSTANCE, IntPtr.Zero, IntPtr.Zero);
+					return;
+				}
+
+				Application.Run(new Form1());
 			}
-			Application.Run(new Form1());
 		}
 
-		// Token: 0x02000012 RID: 18
 		public enum PROCESS_DPI_AWARENESS
 		{
-			// Token: 0x04000075 RID: 117
 			PROCESS_DPI_UNAWARE,
-			// Token: 0x04000076 RID: 118
 			PROCESS_SYSTEM_DPI_AWARE,
-			// Token: 0x04000077 RID: 119
 			PROCESS_PER_MONITOR_DPI_AWARE
 		}
 
-		// Token: 0x02000013 RID: 19
 		public enum DPI_AWARENESS_CONTEXT
 		{
-			// Token: 0x04000079 RID: 121
 			DPI_AWARENESS_CONTEXT_DEFAULT,
-			// Token: 0x0400007A RID: 122
 			DPI_AWARENESS_CONTEXT_UNAWARE = -1,
-			// Token: 0x0400007B RID: 123
 			DPI_AWARENESS_CONTEXT_SYSTEM_AWARE = -2,
-			// Token: 0x0400007C RID: 124
 			DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = -3,
-			// Token: 0x0400007D RID: 125
 			DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
 		}
 	}

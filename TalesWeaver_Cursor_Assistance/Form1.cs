@@ -237,6 +237,41 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 트레이 또는 숨김 상태의 메인 폼을 화면에 표시하고 최상위로 활성화합니다.
+        /// </summary>
+        public void RestoreFromTray()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(this.RestoreFromTray));
+                return;
+            }
+
+            if (!this.Visible)
+            {
+                this.Show();
+            }
+
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.WindowState = FormWindowState.Normal;
+            }
+
+            this.Activate();
+            this.BringToFront();
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == Program.WM_SHOW_EXISTING_INSTANCE)
+            {
+                this.RestoreFromTray();
+            }
+
+            base.WndProc(ref m);
+        }
+
         #endregion
 
         #region [3. 마우스 후크(Hook) 및 이벤트 처리 기능]
@@ -590,9 +625,7 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         private void TrayMenu_Open_Click(object sender, EventArgs e)
         {
-            base.Show();
-            base.WindowState = FormWindowState.Normal;
-            base.BringToFront();
+            this.RestoreFromTray();
         }
 
         /// <summary>
@@ -612,9 +645,7 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         private void NotifyIcon_DoubleClick(object sender, EventArgs e)
         {
-            base.Show();
-            base.WindowState = FormWindowState.Normal;
-            base.BringToFront();
+            this.RestoreFromTray();
         }
 
         /// <summary>
