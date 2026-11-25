@@ -6,7 +6,6 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace TalesWeaver_Cursor_Assistance
 {
@@ -143,7 +142,6 @@ namespace TalesWeaver_Cursor_Assistance
                 if (this.Mouse_Opacity != null) this.Mouse_Opacity.Value = this.CursorOpacity;
                 if (this.textBox_CursorBase64 != null) this.textBox_CursorBase64.Text = this.CursorBase64;
                 if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
-
                 if (this.checkBox_Skill_RangeExtension != null)
                 {
                     this.checkBox_Skill_RangeExtension.Checked = this.Skill_RangeExtension;
@@ -152,7 +150,6 @@ namespace TalesWeaver_Cursor_Assistance
                 {
                     this.checkBox_Skill_RangeExtensionItem.Checked = this.Skill_RangeExtensionItem;
                 }
-
                 if (this.radioButton_Skill_UserRange != null)
                 {
                     this.radioButton_Skill_UserRange.Checked = this.SkillEnable_UserRange;
@@ -169,8 +166,16 @@ namespace TalesWeaver_Cursor_Assistance
                 {
                     this.radioButton_Skill_None.Checked = true;
                 }
-
                 if (this.Skill_Range_Opacity != null) this.Skill_Range_Opacity.Value = this.Skill_RangeOpacity;
+                if (this.checkBox_SpaceToEnter_Enable != null)
+                {
+                    this.checkBox_SpaceToEnter_Enable.Checked = this._spaceToEnterEnabled;
+                }
+                if (this.textBox_SpaceToEnter_Duration != null)
+                {
+                    this.textBox_SpaceToEnter_Duration.Text = this._spaceToEnterDurationMs.ToString();
+                    this.textBox_SpaceToEnter_Duration.Enabled = this._spaceToEnterEnabled;
+                }
 
                 // 프리셋 및 커서/스킬 형상 초기화 적용
                 this.UpdatePresetSelection();
@@ -235,41 +240,6 @@ namespace TalesWeaver_Cursor_Assistance
             catch (Exception)
             {
             }
-        }
-
-        /// <summary>
-        /// 트레이 또는 숨김 상태의 메인 폼을 화면에 표시하고 최상위로 활성화합니다.
-        /// </summary>
-        public void RestoreFromTray()
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(this.RestoreFromTray));
-                return;
-            }
-
-            if (!this.Visible)
-            {
-                this.Show();
-            }
-
-            if (this.WindowState == FormWindowState.Minimized)
-            {
-                this.WindowState = FormWindowState.Normal;
-            }
-
-            this.Activate();
-            this.BringToFront();
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            if (m.Msg == Program.WM_SHOW_EXISTING_INSTANCE)
-            {
-                this.RestoreFromTray();
-            }
-
-            base.WndProc(ref m);
         }
 
         #endregion
@@ -397,6 +367,22 @@ namespace TalesWeaver_Cursor_Assistance
                 this.Skill_Range = Skill_Range;
 
                 this.SetSkillShape();
+
+                int durationMs = 200;
+                if (this.textBox_SpaceToEnter_Duration != null)
+                {
+                    if (!int.TryParse(this.textBox_SpaceToEnter_Duration.Text, out durationMs) || durationMs < 0 || durationMs > 60000)
+                    {
+                        MessageBox.Show("유지 시간은 0 ~ 60000(ms) 사이의 숫자만 입력 가능합니다.");
+                        durationMs = 200;
+                        this.textBox_SpaceToEnter_Duration.Text = durationMs.ToString();
+                    }
+                }
+                this._spaceToEnterDurationMs = durationMs;
+                if (this.checkBox_SpaceToEnter_Enable != null)
+                {
+                    this._spaceToEnterEnabled = this.checkBox_SpaceToEnter_Enable.Checked;
+                }
             }
             catch (Exception)
             {
@@ -510,6 +496,14 @@ namespace TalesWeaver_Cursor_Assistance
                                 {
                                     this.Skill_RangeOpacity = Skill_RangeOpacity;
                                 }
+                                else if (a == "SpaceToEnter_Enable" && bool.TryParse(text2, out flag))
+                                {
+                                    this._spaceToEnterEnabled = flag;
+                                }
+                                else if (a == "SpaceToEnter_DurationMs" && int.TryParse(text2, out int parsedDuration) && parsedDuration >= 0)
+                                {
+                                    this._spaceToEnterDurationMs = parsedDuration;
+                                }
                             }
                         }
                     }
@@ -541,18 +535,22 @@ namespace TalesWeaver_Cursor_Assistance
             try
             {
                 string text = string.IsNullOrEmpty(this.CursorBase64) ? "" : this.CursorBase64.Replace("\r", "").Replace("\n", "").Trim();
-                string contents = string.Format("Size={0}\nOpacity={1}\nCursor={2}\nSkillEnable_UserRange={3}\nSkillEnable_StraightRange={4}\nSkillEnable_CustomRange={5}\nSkill_RangeExtension={6}\nSkill_RangeExtensionItem={7}\nSkill_Range={8}\nSkill_RangeOpacity={9}", new object[]
-                {
-                    this.CursorSize,
-                    this.CursorOpacity,
-                    text,
-                    this.SkillEnable_UserRange,
-                    this.SkillEnable_StraightRange,
-                    this.SkillEnable_CustomRange,
-                    this.Skill_RangeExtension,
-                    this.Skill_RangeExtensionItem,
-                    this.Skill_Range,
-                    this.Skill_RangeOpacity
+                string contents = string.Format(
+                    "Size={0}\nOpacity={1}\nCursor={2}\nSkillEnable_UserRange={3}\nSkillEnable_StraightRange={4}\nSkillEnable_CustomRange={5}\nSkill_RangeExtension={6}\nSkill_RangeExtensionItem={7}\nSkill_Range={8}\nSkill_RangeOpacity={9}\nSpaceToEnter_Enable={10}\nSpaceToEnter_DurationMs={11}",
+                    new object[]
+                    {
+                        this.CursorSize,
+                        this.CursorOpacity,
+                        text,
+                        this.SkillEnable_UserRange,
+                        this.SkillEnable_StraightRange,
+                        this.SkillEnable_CustomRange,
+                        this.Skill_RangeExtension,
+                        this.Skill_RangeExtensionItem,
+                        this.Skill_Range,
+                        this.Skill_RangeOpacity,
+                        this._spaceToEnterEnabled,
+                        this._spaceToEnterDurationMs
                 });
                 File.WriteAllText(this.configPath, contents);
             }
@@ -594,6 +592,41 @@ namespace TalesWeaver_Cursor_Assistance
             catch (Exception)
             {
             }
+        }
+
+        /// <summary>
+        /// 트레이 또는 숨김 상태의 메인 폼을 화면에 표시하고 최상위로 활성화합니다.
+        /// </summary>
+        public void RestoreFromTray()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(this.RestoreFromTray));
+                return;
+            }
+
+            if (!this.Visible)
+            {
+                this.Show();
+            }
+
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.WindowState = FormWindowState.Normal;
+            }
+
+            this.Activate();
+            this.BringToFront();
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == Program.WM_SHOW_EXISTING_INSTANCE)
+            {
+                this.RestoreFromTray();
+            }
+
+            base.WndProc(ref m);
         }
 
         /// <summary>
@@ -1101,6 +1134,7 @@ namespace TalesWeaver_Cursor_Assistance
         private const int VK_SPACE = 0x20;
         private const int VK_RETURN = 0x0D;
         private const uint KEYEVENTF_KEYUP = 0x0002;
+        private bool _spaceToEnterEnabled = true;
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -1108,7 +1142,7 @@ namespace TalesWeaver_Cursor_Assistance
         private IntPtr _keyboardHookId = IntPtr.Zero;
 
         // Space를 Enter로 변환할 지속 시간 (ms) - UI 연동 전 기본값
-        private int _spaceToEnterDurationMs = 1000;
+        private int _spaceToEnterDurationMs = 200;
 
         // 해당 시각(Environment.TickCount) 이전까지 Space를 Enter로 취급
         private long _spaceAsEnterUntilTick = 0;
@@ -1182,7 +1216,7 @@ namespace TalesWeaver_Cursor_Assistance
 
         private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0)
+            if (nCode >= 0 && this._spaceToEnterEnabled)
             {
                 int msg = wParam.ToInt32();
                 if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
@@ -1222,6 +1256,29 @@ namespace TalesWeaver_Cursor_Assistance
         {
             keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
             keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        }
+
+        /// <summary>
+        /// '치환 기능 사용' 체크박스 상태 변경 시 활성화 여부를 반영하고 타이머 상태를 초기화합니다.
+        /// </summary>
+        private void checkBox_SpaceToEnter_Enable_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.checkBox_SpaceToEnter_Enable == null) return;
+
+            this._spaceToEnterEnabled = this.checkBox_SpaceToEnter_Enable.Checked;
+
+            if (this.textBox_SpaceToEnter_Duration != null)
+            {
+                this.textBox_SpaceToEnter_Duration.Enabled = this._spaceToEnterEnabled;
+            }
+
+            if (!this._spaceToEnterEnabled)
+            {
+                lock (_spaceEnterLock)
+                {
+                    _spaceAsEnterUntilTick = 0;
+                }
+            }
         }
 
         #endregion

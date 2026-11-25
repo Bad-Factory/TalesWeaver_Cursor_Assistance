@@ -74,6 +74,11 @@
             this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip();
             this.toolStripMenuItemOpen = new global::System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemExit = new global::System.Windows.Forms.ToolStripMenuItem();
+
+            this.groupBox_SpaceToEnter = new global::System.Windows.Forms.GroupBox();
+            this.checkBox_SpaceToEnter_Enable = new global::System.Windows.Forms.CheckBox();
+            this.textBox_SpaceToEnter_Duration = new global::System.Windows.Forms.TextBox();
+            this.label_SpaceToEnter_Duration = new global::System.Windows.Forms.Label();
             #endregion
 
             #region [2-2. 레이아웃 일괄 업데이트 일시 정지 (SuspendLayout)]
@@ -82,6 +87,7 @@
             this.groupBox_Skill.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             base.SuspendLayout();
+            this.groupBox_SpaceToEnter.SuspendLayout();
             #endregion
 
             #region [2-3. 커서 설정 그룹 UI 배치 및 속성 설정 (groupBox_MouseHighlight)]
@@ -343,15 +349,59 @@
             this.label_Skill_RangeOpacity.TabIndex = 8;
             this.label_Skill_RangeOpacity.Text = "스킬 범위 투명도";
             this.label_Skill_RangeOpacity.UseCompatibleTextRendering = true;
+
+            // [1~5 키 입력 시 Space -> Enter 치환]
+            this.groupBox_SpaceToEnter.Controls.Add(this.checkBox_SpaceToEnter_Enable);
+            this.groupBox_SpaceToEnter.Controls.Add(this.textBox_SpaceToEnter_Duration);
+            this.groupBox_SpaceToEnter.Controls.Add(this.label_SpaceToEnter_Duration);
+            this.groupBox_SpaceToEnter.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.groupBox_SpaceToEnter.Location = new global::System.Drawing.Point(15, 564);
+            this.groupBox_SpaceToEnter.Name = "groupBox_SpaceToEnter";
+            this.groupBox_SpaceToEnter.Size = new global::System.Drawing.Size(330, 88);
+            this.groupBox_SpaceToEnter.TabIndex = 3;
+            this.groupBox_SpaceToEnter.TabStop = false;
+            this.groupBox_SpaceToEnter.Text = "Space → Enter 치환 (1~5 키)";
+            this.groupBox_SpaceToEnter.UseCompatibleTextRendering = true;
+
+            // ON/OFF 체크박스 설정
+            this.checkBox_SpaceToEnter_Enable.AutoSize = true;
+            this.checkBox_SpaceToEnter_Enable.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.checkBox_SpaceToEnter_Enable.Location = new global::System.Drawing.Point(15, 25);
+            this.checkBox_SpaceToEnter_Enable.Name = "checkBox_SpaceToEnter_Enable";
+            this.checkBox_SpaceToEnter_Enable.Size = new global::System.Drawing.Size(130, 24);
+            this.checkBox_SpaceToEnter_Enable.TabIndex = 0;
+            this.checkBox_SpaceToEnter_Enable.Text = "치환 기능 사용";
+            this.checkBox_SpaceToEnter_Enable.UseVisualStyleBackColor = true;
+            this.checkBox_SpaceToEnter_Enable.CheckedChanged += new System.EventHandler(this.checkBox_SpaceToEnter_Enable_CheckedChanged);
+
+            // 지속 시간 입력 텍스트박스 설정 (ms 단위)
+            this.textBox_SpaceToEnter_Duration.Font = new global::System.Drawing.Font("Segoe UI", 10.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.textBox_SpaceToEnter_Duration.ImeMode = global::System.Windows.Forms.ImeMode.Disable;
+            this.textBox_SpaceToEnter_Duration.Location = new global::System.Drawing.Point(15, 52);
+            this.textBox_SpaceToEnter_Duration.MaxLength = 5;
+            this.textBox_SpaceToEnter_Duration.Name = "textBox_SpaceToEnter_Duration";
+            this.textBox_SpaceToEnter_Duration.Size = new global::System.Drawing.Size(130, 26);
+            this.textBox_SpaceToEnter_Duration.TabIndex = 1;
+            this.textBox_SpaceToEnter_Duration.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox_KeyDown);
+
+            // 지속 시간 안내 라벨 설정
+            this.label_SpaceToEnter_Duration.AutoSize = true;
+            this.label_SpaceToEnter_Duration.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.label_SpaceToEnter_Duration.Location = new global::System.Drawing.Point(155, 55);
+            this.label_SpaceToEnter_Duration.Name = "label_SpaceToEnter_Duration";
+            this.label_SpaceToEnter_Duration.Size = new global::System.Drawing.Size(155, 20);
+            this.label_SpaceToEnter_Duration.TabIndex = 2;
+            this.label_SpaceToEnter_Duration.Text = "유지 시간 ms (기본 200)";
+            this.label_SpaceToEnter_Duration.UseCompatibleTextRendering = true;
             #endregion
 
             #region [2-6. 하단 메인 제어 버튼 UI 배치 및 속성 설정]
             // 커서 변경 버튼 설정
             this.button_ChangeCursor.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_ChangeCursor.Location = new global::System.Drawing.Point(15, 569);
+            this.button_ChangeCursor.Location = new global::System.Drawing.Point(15, 665);
             this.button_ChangeCursor.Name = "button_ChangeCursor";
             this.button_ChangeCursor.Size = new global::System.Drawing.Size(103, 35);
-            this.button_ChangeCursor.TabIndex = 3;
+            this.button_ChangeCursor.TabIndex = 4;
             this.button_ChangeCursor.Text = "커서 변경";
             this.button_ChangeCursor.UseCompatibleTextRendering = true;
             this.button_ChangeCursor.UseVisualStyleBackColor = true;
@@ -359,10 +409,10 @@
 
             // 설정값 저장 버튼 설정
             this.button_Apply.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_Apply.Location = new global::System.Drawing.Point(123, 569);
+            this.button_Apply.Location = new global::System.Drawing.Point(123, 665);
             this.button_Apply.Name = "button_Apply";
             this.button_Apply.Size = new global::System.Drawing.Size(103, 35);
-            this.button_Apply.TabIndex = 4;
+            this.button_Apply.TabIndex = 5;
             this.button_Apply.Text = "설정값 저장";
             this.button_Apply.UseCompatibleTextRendering = true;
             this.button_Apply.UseVisualStyleBackColor = true;
@@ -370,10 +420,10 @@
 
             // 트레이로 최소화 버튼 설정
             this.button_MinimizeTray.Font = new global::System.Drawing.Font("Segoe UI", 8.5f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_MinimizeTray.Location = new global::System.Drawing.Point(231, 569);
+            this.button_MinimizeTray.Location = new global::System.Drawing.Point(231, 665);
             this.button_MinimizeTray.Name = "button_MinimizeTray";
             this.button_MinimizeTray.Size = new global::System.Drawing.Size(114, 35);
-            this.button_MinimizeTray.TabIndex = 5;
+            this.button_MinimizeTray.TabIndex = 6;
             this.button_MinimizeTray.Text = "트레이로 최소화";
             this.button_MinimizeTray.UseCompatibleTextRendering = true;
             this.button_MinimizeTray.UseVisualStyleBackColor = true;
@@ -416,7 +466,7 @@
             base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
             this.AutoSize = true;
-            base.ClientSize = new global::System.Drawing.Size(360, 620);
+            base.ClientSize = new global::System.Drawing.Size(360, 716);
             base.KeyPreview = true;
 
             // 폼 컨트롤 컬렉션 등록
@@ -426,6 +476,7 @@
             base.Controls.Add(this.groupBox_Skill);
             base.Controls.Add(this.groupBox_CustomCursor);
             base.Controls.Add(this.groupBox_MouseHighlight);
+            base.Controls.Add(this.groupBox_SpaceToEnter);
 
             this.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             base.FormBorderStyle = global::System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -448,6 +499,8 @@
             this.groupBox_Skill.ResumeLayout(false);
             this.groupBox_Skill.PerformLayout();
             this.contextMenuStrip1.ResumeLayout(false);
+            this.groupBox_SpaceToEnter.ResumeLayout(false);
+            this.groupBox_SpaceToEnter.PerformLayout();
             base.ResumeLayout(false);
             #endregion
 
@@ -465,6 +518,8 @@
             this.toolTip1.SetToolTip(this.button_ChangeCursor, "선택/입력한 Base64 코드로 커서를 변경합니다");
             this.toolTip1.SetToolTip(this.button_Apply, "현재 변경된 모든 설정값을 설정 파일에 저장합니다");
             this.toolTip1.SetToolTip(this.button_MinimizeTray, "[ESC] 프로그램을 작업 표시줄에서 숨기고 시스템 트레이로 내립니다");
+            this.toolTip1.SetToolTip(this.checkBox_SpaceToEnter_Enable, "1~5 키 입력 후 지정된 시간(ms) 동안 Space 키를 Enter 키로 변환합니다");
+            this.toolTip1.SetToolTip(this.textBox_SpaceToEnter_Duration, "Space → Enter 변환이 유지되는 시간(ms, 1000 = 1초)을 입력합니다");
             #endregion
         }
         #endregion
@@ -546,6 +601,13 @@
         private global::System.Windows.Forms.Label label_Skill_RangeOpacity;
         /// <summary>구분선 패널</summary>
         private global::System.Windows.Forms.Panel panel_SkillSeparator;
+        #endregion
+
+        #region [3-6. Space -> Enter 치환 설정 관련 필드]
+        private global::System.Windows.Forms.GroupBox groupBox_SpaceToEnter;
+        private global::System.Windows.Forms.CheckBox checkBox_SpaceToEnter_Enable;
+        private global::System.Windows.Forms.TextBox textBox_SpaceToEnter_Duration;
+        private global::System.Windows.Forms.Label label_SpaceToEnter_Duration;
         #endregion
 
         #endregion
