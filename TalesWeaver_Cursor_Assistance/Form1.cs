@@ -151,6 +151,8 @@ namespace TalesWeaver_Cursor_Assistance
         private bool SkillEnable_CustomRange;
         /// <summary>사용자 지정 스킬 범위 색상 (null이면 모드별 기본색 사용)</summary>
         private Color? Skill_CustomColor = null;
+        /// <summary>직선 범위 내 사거리 외곽선 원 색상</summary>
+        private Color Skill_AttackRangeColor = Color.White;
         /// <summary>범위 연마 효과(+20) 적용 여부</summary>
         private bool Skill_RangeExtension;
         /// <summary>불시엔 아이템 효과(+7) 적용 여부</summary>
@@ -205,6 +207,7 @@ namespace TalesWeaver_Cursor_Assistance
             this.SkillEnable_StraightRange = false;
             this.SkillEnable_CustomRange = false;
             this.Skill_CustomColor = null;
+            this.Skill_AttackRangeColor = Color.White;
             this.Skill_Range = 44;
             this.Skill_AttackRange = DEFAULT_SKILL_ATTACK_RANGE;
             this.Skill_RangeHeight = this.Skill_Range * 10;
@@ -250,6 +253,7 @@ namespace TalesWeaver_Cursor_Assistance
                 if (this.Skill_Range_Opacity != null) this.Skill_Range_Opacity.Value = this.Skill_RangeOpacity;
                 this.SyncAttackRangeControlState();
                 this.SyncSkillColorButtonUi();
+                this.SyncAttackRangeColorButtonUi();
 
                 if (this.checkBox_SpaceToEnter_Enable != null) this.checkBox_SpaceToEnter_Enable.Checked = this._spaceToEnterEnabled;
                 if (this.textBox_SpaceToEnter_Duration != null)
@@ -288,6 +292,7 @@ namespace TalesWeaver_Cursor_Assistance
                 if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
                 this.SyncAttackRangeControlState();
                 this.SyncSkillColorButtonUi();
+                this.SyncAttackRangeColorButtonUi();
                 this.UpdatePresetSelection();
                 this.SetCursor();
                 this.UpdateOverlayVisibilityByFocus(forceRefresh: true);
@@ -680,7 +685,7 @@ namespace TalesWeaver_Cursor_Assistance
         #region [6. 설정 적용 및 커서/스킬 렌더링 (Apply & Rendering)]
 
         /// <summary>
-        /// 직선 범위 모드 활성화 여부에 따라 사거리 입력 컨트롤의 사용 가능 상태를 동기화합니다.
+        /// 직선 범위 모드 활성화 여부에 따라 사거리 입력 및 사거리 원 색상 컨트롤의 사용 가능 상태를 동기화합니다.
         /// </summary>
         private void SyncAttackRangeControlState()
         {
@@ -693,6 +698,19 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 this.label_Skill_AttackRange.Enabled = enabled;
             }
+            if (this.button_Skill_AttackRangeColor != null)
+            {
+                this.button_Skill_AttackRangeColor.Enabled = enabled;
+            }
+        }
+
+        /// <summary>
+        /// 버튼 배경색 대비 가독성 높은 전경색(검정 또는 흰색)을 반환합니다.
+        /// </summary>
+        private static Color GetContrastingForeColor(Color backgroundColor)
+        {
+            int brightness = (backgroundColor.R * 299 + backgroundColor.G * 587 + backgroundColor.B * 114) / 1000;
+            return brightness >= 128 ? Color.Black : Color.White;
         }
 
         /// <summary>
@@ -725,9 +743,20 @@ namespace TalesWeaver_Cursor_Assistance
             Color c = this.GetActiveSkillRangeColor();
             this.button_Skill_RangeColor.UseVisualStyleBackColor = false;
             this.button_Skill_RangeColor.BackColor = c;
+            this.button_Skill_RangeColor.ForeColor = GetContrastingForeColor(c);
+        }
 
-            int brightness = (c.R * 299 + c.G * 587 + c.B * 114) / 1000;
-            this.button_Skill_RangeColor.ForeColor = brightness >= 128 ? Color.Black : Color.White;
+        /// <summary>
+        /// 사거리 외곽선 원 색상 버튼의 배경색과 전경색을 현재 적용된 색상에 맞춰 동기화합니다.
+        /// </summary>
+        private void SyncAttackRangeColorButtonUi()
+        {
+            if (this.button_Skill_AttackRangeColor == null) return;
+
+            Color c = this.Skill_AttackRangeColor;
+            this.button_Skill_AttackRangeColor.UseVisualStyleBackColor = false;
+            this.button_Skill_AttackRangeColor.BackColor = c;
+            this.button_Skill_AttackRangeColor.ForeColor = GetContrastingForeColor(c);
         }
 
         /// <summary>
@@ -886,7 +915,7 @@ namespace TalesWeaver_Cursor_Assistance
 
         /// <summary>
         /// 선택된 스킬 범위 모드와 연마/아이템 옵션에 맞춰 스킬 범위 도형 비트맵을 생성하고 활성 상태 시 오버레이 폼에 출력합니다.
-        /// (자기 중심: Cyan 마름모 / 직선 범위: Orange 타원 + 사거리 외곽선 원 / 지정 범위: Red 타원, 사용자 지정 색상 우선)
+        /// (자기 중심: Cyan 마름모 / 직선 범위: Orange 타원 + 지정 색상 사거리 외곽선 원 / 지정 범위: Red 타원, 사용자 지정 색상 우선)
         /// </summary>
         private void SetSkillShape()
         {
@@ -894,6 +923,7 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 this.SyncAttackRangeControlState();
                 this.SyncSkillColorButtonUi();
+                this.SyncAttackRangeColorButtonUi();
 
                 bool isAnyEnabled = this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange;
                 if (!isAnyEnabled)
@@ -987,7 +1017,7 @@ namespace TalesWeaver_Cursor_Assistance
                                 float circleLeft = 2f + (shapeWidth - attackWidth) / 2f;
                                 float circleTop = 2f + (shapeHeight - attackHeight) / 2f;
 
-                                using (Pen attackOutlinePen = new Pen(Color.White, 2f))
+                                using (Pen attackOutlinePen = new Pen(this.Skill_AttackRangeColor, 2f))
                                 {
                                     graphics.DrawEllipse(attackOutlinePen, circleLeft, circleTop, (float)attackWidth, (float)attackHeight);
                                 }
@@ -1086,6 +1116,20 @@ namespace TalesWeaver_Cursor_Assistance
                             {
                             }
                         }
+                        else if (key == "Skill_AttackRangeColor" && !string.IsNullOrEmpty(value))
+                        {
+                            try
+                            {
+                                Color parsedAttackColor = ColorTranslator.FromHtml(value);
+                                if (!parsedAttackColor.IsEmpty)
+                                {
+                                    this.Skill_AttackRangeColor = parsedAttackColor;
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        }
                         else if (key == "Skill_RangeExtension" && bool.TryParse(value, out bool parsedRangeExtension))
                         {
                             this.Skill_RangeExtension = parsedRangeExtension;
@@ -1126,6 +1170,7 @@ namespace TalesWeaver_Cursor_Assistance
             if (this.CursorSize <= 0) this.CursorSize = 20;
             if (this.CursorOpacity == 0) this.CursorOpacity = byte.MaxValue;
             if (string.IsNullOrEmpty(this.CursorBase64)) this.CursorBase64 = PRESET_DEFAULT;
+            if (this.Skill_AttackRangeColor.IsEmpty) this.Skill_AttackRangeColor = Color.White;
             if (this.Skill_Range <= 0) this.Skill_Range = 44;
             if (this.Skill_AttackRange < 0) this.Skill_AttackRange = DEFAULT_SKILL_ATTACK_RANGE;
             if (this.Skill_AttackRange > this.Skill_Range) this.Skill_AttackRange = this.Skill_Range;
@@ -1153,8 +1198,10 @@ namespace TalesWeaver_Cursor_Assistance
                     ? ColorTranslator.ToHtml(this.Skill_CustomColor.Value)
                     : "Default";
 
+                string attackColorValue = ColorTranslator.ToHtml(this.Skill_AttackRangeColor);
+
                 string contents = string.Format(
-                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_RangeExtension={8}\nSkill_RangeExtensionItem={9}\nSkill_Range={10}\nSkill_AttackRange={11}\nSkill_RangeOpacity={12}\nSpaceToEnter_Enable={13}\nSpaceToEnter_DurationMs={14}",
+                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_AttackRangeColor={8}\nSkill_RangeExtension={9}\nSkill_RangeExtensionItem={10}\nSkill_Range={11}\nSkill_AttackRange={12}\nSkill_RangeOpacity={13}\nSpaceToEnter_Enable={14}\nSpaceToEnter_DurationMs={15}",
                     new object[]
                     {
                         this._onlyWhenTalesWeaverRunning,
@@ -1165,6 +1212,7 @@ namespace TalesWeaver_Cursor_Assistance
                         this.SkillEnable_StraightRange,
                         this.SkillEnable_CustomRange,
                         colorValue,
+                        attackColorValue,
                         this.Skill_RangeExtension,
                         this.Skill_RangeExtensionItem,
                         this.Skill_Range,
@@ -1494,6 +1542,32 @@ namespace TalesWeaver_Cursor_Assistance
             catch (Exception ex)
             {
                 MessageBox.Show("색상 변경 실패: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+            }
+        }
+
+        /// <summary>
+        /// 직선 범위 내 사거리 외곽선 원 색상 선택 대화상자를 열고 선택한 색상을 즉시 반영합니다.
+        /// </summary>
+        private void button_Skill_AttackRangeColor_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (ColorDialog dialog = new ColorDialog())
+                {
+                    dialog.FullOpen = true;
+                    dialog.Color = this.Skill_AttackRangeColor;
+
+                    if (dialog.ShowDialog(this) == DialogResult.OK)
+                    {
+                        this.Skill_AttackRangeColor = dialog.Color;
+                        this.SyncAttackRangeColorButtonUi();
+                        this.SetSkillShape();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("사거리 원 색상 변경 실패: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
             }
         }
 

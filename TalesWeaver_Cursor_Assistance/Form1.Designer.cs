@@ -64,6 +64,7 @@
             this.textBox_Skill_Range = new global::System.Windows.Forms.TextBox();
             this.textBox_Skill_AttackRange = new global::System.Windows.Forms.TextBox();
             this.label_Skill_AttackRange = new global::System.Windows.Forms.Label();
+            this.button_Skill_AttackRangeColor = new global::System.Windows.Forms.Button();
             this.label_Skill_RangeOpacity = new global::System.Windows.Forms.Label();
             this.Skill_Range_Opacity = new System.Windows.Forms.TrackBar();
             ((System.ComponentModel.ISupportInitialize)(this.Skill_Range_Opacity)).BeginInit();
@@ -231,6 +232,7 @@
             this.groupBox_Skill.Controls.Add(this.textBox_Skill_Range);
             this.groupBox_Skill.Controls.Add(this.textBox_Skill_AttackRange);
             this.groupBox_Skill.Controls.Add(this.label_Skill_AttackRange);
+            this.groupBox_Skill.Controls.Add(this.button_Skill_AttackRangeColor);
             this.groupBox_Skill.Controls.Add(this.label_Skill_RangeOpacity);
             this.groupBox_Skill.Controls.Add(this.Skill_Range_Opacity);
             this.groupBox_Skill.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
@@ -356,10 +358,21 @@
             this.label_Skill_AttackRange.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             this.label_Skill_AttackRange.Location = new global::System.Drawing.Point(155, 170);
             this.label_Skill_AttackRange.Name = "label_Skill_AttackRange";
-            this.label_Skill_AttackRange.Size = new global::System.Drawing.Size(155, 20);
+            this.label_Skill_AttackRange.Size = new global::System.Drawing.Size(115, 20);
             this.label_Skill_AttackRange.TabIndex = 9;
-            this.label_Skill_AttackRange.Text = "사거리 (직선 범위 전용)";
+            this.label_Skill_AttackRange.Text = "사거리 (직선 전용)";
             this.label_Skill_AttackRange.UseCompatibleTextRendering = true;
+
+            this.button_Skill_AttackRangeColor.Enabled = false;
+            this.button_Skill_AttackRangeColor.Font = new global::System.Drawing.Font("Segoe UI", 8f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.button_Skill_AttackRangeColor.Location = new global::System.Drawing.Point(275, 167);
+            this.button_Skill_AttackRangeColor.Name = "button_Skill_AttackRangeColor";
+            this.button_Skill_AttackRangeColor.Size = new global::System.Drawing.Size(40, 24);
+            this.button_Skill_AttackRangeColor.TabIndex = 12;
+            this.button_Skill_AttackRangeColor.Text = "원색상";
+            this.button_Skill_AttackRangeColor.UseCompatibleTextRendering = true;
+            this.button_Skill_AttackRangeColor.UseVisualStyleBackColor = false;
+            this.button_Skill_AttackRangeColor.Click += new System.EventHandler(this.button_Skill_AttackRangeColor_Click);
 
             this.Skill_Range_Opacity.Location = new global::System.Drawing.Point(15, 202);
             this.Skill_Range_Opacity.Name = "Skill_Range_Opacity";
@@ -533,6 +546,7 @@
             this.toolTip1.SetToolTip(this.checkBox_Skill_RangeExtensionItem, "불시엔 효과를 적용하여 범위를 넓힙니다 (+7)");
             this.toolTip1.SetToolTip(this.textBox_Skill_Range, "자기 중심 범위 : 기본 44 / 예프넨 48\n직선 범위 : 기본 40 ' 30\n지정 범위 : 기본 32 / 예프넨 36");
             this.toolTip1.SetToolTip(this.textBox_Skill_AttackRange, "직선 범위 사용 시 겹치는 사거리 외곽선 원 값 (기본 30, 직선 범위 값 이하)");
+            this.toolTip1.SetToolTip(this.button_Skill_AttackRangeColor, "직선 범위 내 사거리 외곽선 원 색상을 선택합니다 (기본 흰색)");
             this.toolTip1.SetToolTip(this.button_ChangeCursor, "선택/입력한 Base64 코드로 커서를 변경합니다");
             this.toolTip1.SetToolTip(this.button_Apply, "현재 변경된 모든 설정값을 설정 파일에 저장합니다");
             this.toolTip1.SetToolTip(this.button_MinimizeTray, "[ESC] 프로그램을 작업 표시줄에서 숨기고 시스템 트레이로 내립니다");
@@ -628,6 +642,8 @@
         private global::System.Windows.Forms.TextBox textBox_Skill_AttackRange;
         /// <summary>직선 범위 내 사거리 오버레이 안내 라벨</summary>
         private global::System.Windows.Forms.Label label_Skill_AttackRange;
+        /// <summary>직선 범위 내 사거리 외곽선 원 색상 변경 버튼</summary>
+        private global::System.Windows.Forms.Button button_Skill_AttackRangeColor;
         /// <summary>구분선 패널</summary>
         private global::System.Windows.Forms.Panel panel_SkillSeparator;
         #endregion
