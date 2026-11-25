@@ -18,6 +18,10 @@ namespace TalesWeaver_Cursor_Assistance
         private const string TARGET_PROCESS_NAME = "InphaseNXD";
         /// <summary>포그라운드 프로세스 변경 감시 주기 (ms)</summary>
         private const int FOCUS_POLL_INTERVAL_MS = 100;
+        /// <summary>Space → Enter 치환 유지 시간 최대값 (ms)</summary>
+        private const int MAX_SPACE_TO_ENTER_DURATION_MS = 2000;
+        /// <summary>직선 범위 내 사거리 오버레이 기본값</summary>
+        private const int DEFAULT_SKILL_ATTACK_RANGE = 30;
         #endregion
 
         #region [1-2. Win32 API 상수]
@@ -134,6 +138,8 @@ namespace TalesWeaver_Cursor_Assistance
         private int CursorSize;
         /// <summary>커서 불투명도 값 (0 ~ 255)</summary>
         private byte CursorOpacity;
+        /// <summary>직전 마우스 클릭(누름) 상태 캐시</summary>
+        private bool _isMousePressedCached;
         #endregion
 
         #region [2-4. 스킬 범위 오버레이 설정 상태]
@@ -143,12 +149,16 @@ namespace TalesWeaver_Cursor_Assistance
         private bool SkillEnable_StraightRange;
         /// <summary>지정 범위(마우스 추적 타원) 활성화 여부</summary>
         private bool SkillEnable_CustomRange;
+        /// <summary>사용자 지정 스킬 범위 색상 (null이면 모드별 기본색 사용)</summary>
+        private Color? Skill_CustomColor = null;
         /// <summary>범위 연마 효과(+20) 적용 여부</summary>
         private bool Skill_RangeExtension;
         /// <summary>불시엔 아이템 효과(+7) 적용 여부</summary>
         private bool Skill_RangeExtensionItem;
         /// <summary>사용자 입력 기준 스킬 사거리 값 (30 ~ 60)</summary>
         private int Skill_Range;
+        /// <summary>직선 범위 내 겹치는 외곽선 원(사거리 오버레이) 값 (직선 범위 값 이하)</summary>
+        private int Skill_AttackRange = DEFAULT_SKILL_ATTACK_RANGE;
         /// <summary>계산된 스킬 범위 오버레이 가로 픽셀 크기</summary>
         private int Skill_RangeWidth;
         /// <summary>계산된 스킬 범위 오버레이 세로 픽셀 크기</summary>
@@ -164,7 +174,7 @@ namespace TalesWeaver_Cursor_Assistance
         #region [2-5. 키 치환(1~5 입력 후 Space -> Enter) 상태 및 동기화]
         /// <summary>키 치환 기능 활성화 여부</summary>
         private bool _spaceToEnterEnabled = true;
-        /// <summary>숫자 키(1~5) 입력 후 Space를 Enter로 변환할 유지 시간(ms)</summary>
+        /// <summary>숫자 키(1~5) 입력 후 Space를 Enter로 변환할 유지 시간(ms, 최대 2000)</summary>
         private int _spaceToEnterDurationMs = 200;
         /// <summary>치환 모드가 유지되는 만료 시각(64비트 단조 증가 Tick)</summary>
         private long _spaceAsEnterUntilTick = 0;
@@ -185,26 +195,24 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         public Form1()
         {
-            // 오버레이 폼 인스턴스 생성
             this.mCursorForm = new GdiForm();
             this.mSkillForm = new GdiForm();
 
-            // 마우스 커서 기본값 초기화
             this.CursorSize = 40;
             this.CursorOpacity = byte.MaxValue;
 
-            // 스킬 범위 기본값 초기화
             this.SkillEnable_UserRange = false;
             this.SkillEnable_StraightRange = false;
             this.SkillEnable_CustomRange = false;
+            this.Skill_CustomColor = null;
             this.Skill_Range = 44;
+            this.Skill_AttackRange = DEFAULT_SKILL_ATTACK_RANGE;
             this.Skill_RangeHeight = this.Skill_Range * 10;
             this.Skill_RangeWidth = this.Skill_RangeHeight * 2;
             this.Skill_RangeOpacity = 100;
             this.Skill_Range_Min = 300;
             this.Skill_Range_Max = 1280;
 
-            // 디자이너 컨트롤 초기화
             this.InitializeComponent();
         }
 
@@ -215,26 +223,21 @@ namespace TalesWeaver_Cursor_Assistance
         {
             try
             {
-                // 전역 마우스 이벤트 후크 등록
                 MouseHook.MouseMove += this.MouseHook_MouseMove;
                 if (!MouseHook.HookStart())
                 {
                     MessageBox.Show("Mouse hook failed");
                 }
 
-                // INI 설정 로드
                 this.LoadSettings();
-
-                // 상단 "TalesWeaver 실행 중에만 활성화" 버튼 UI 동기화
                 this.SyncOnlyWhenTalesWeaverRunningUi();
 
-                // 커서 관련 UI 동기화
                 if (this.textBox_Mouse_Size != null) this.textBox_Mouse_Size.Text = this.CursorSize.ToString();
                 if (this.Mouse_Opacity != null) this.Mouse_Opacity.Value = this.CursorOpacity;
                 if (this.textBox_CursorBase64 != null) this.textBox_CursorBase64.Text = this.CursorBase64;
 
-                // 스킬 범위 관련 UI 동기화
                 if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
+                if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
                 if (this.checkBox_Skill_RangeExtension != null) this.checkBox_Skill_RangeExtension.Checked = this.Skill_RangeExtension;
                 if (this.checkBox_Skill_RangeExtensionItem != null) this.checkBox_Skill_RangeExtensionItem.Checked = this.Skill_RangeExtensionItem;
                 if (this.radioButton_Skill_UserRange != null) this.radioButton_Skill_UserRange.Checked = this.SkillEnable_UserRange;
@@ -245,8 +248,9 @@ namespace TalesWeaver_Cursor_Assistance
                     this.radioButton_Skill_None.Checked = true;
                 }
                 if (this.Skill_Range_Opacity != null) this.Skill_Range_Opacity.Value = this.Skill_RangeOpacity;
+                this.SyncAttackRangeControlState();
+                this.SyncSkillColorButtonUi();
 
-                // 키 치환 관련 UI 동기화
                 if (this.checkBox_SpaceToEnter_Enable != null) this.checkBox_SpaceToEnter_Enable.Checked = this._spaceToEnterEnabled;
                 if (this.textBox_SpaceToEnter_Duration != null)
                 {
@@ -254,7 +258,7 @@ namespace TalesWeaver_Cursor_Assistance
                     this.textBox_SpaceToEnter_Duration.Enabled = this._spaceToEnterEnabled;
                 }
 
-                // 프리셋 선택 동기화 및 오버레이/후크/포커스 감시 초기화
+                this._isMousePressedCached = IsAnyMouseButtonPressed();
                 this.UpdatePresetSelection();
                 this.SetCursor();
                 this.mIsLoadForm = true;
@@ -281,6 +285,9 @@ namespace TalesWeaver_Cursor_Assistance
                 if (this.Mouse_Opacity != null) this.Mouse_Opacity.Value = this.CursorOpacity;
                 if (this.textBox_CursorBase64 != null) this.textBox_CursorBase64.Text = this.CursorBase64;
                 if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
+                if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
+                this.SyncAttackRangeControlState();
+                this.SyncSkillColorButtonUi();
                 this.UpdatePresetSelection();
                 this.SetCursor();
                 this.UpdateOverlayVisibilityByFocus(forceRefresh: true);
@@ -303,13 +310,11 @@ namespace TalesWeaver_Cursor_Assistance
                     this.notifyIcon1.Visible = false;
                 }
 
-                // 포커스 감시 타이머 및 후크 해제
                 this.StopFocusMonitor();
                 MouseHook.HookClose();
                 MouseHook.MouseMove -= this.MouseHook_MouseMove;
                 this.StopSpaceToEnterHook();
 
-                // 오버레이 폼 해제
                 if (this.mCursorForm != null)
                 {
                     this.mCursorForm.Hide();
@@ -323,7 +328,6 @@ namespace TalesWeaver_Cursor_Assistance
                     this.mSkillForm = null;
                 }
 
-                // 캐시 비트맵 해제
                 if (Form1.mBitmap_Mouse != null)
                 {
                     Form1.mBitmap_Mouse.Dispose();
@@ -526,10 +530,11 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// 타이머 틱마다 대상 프로세스 포커스 상태를 확인하고 오버레이 표시 여부를 갱신합니다.
+        /// 타이머 틱마다 대상 프로세스 포커스 상태와 마우스 클릭 상태를 확인하고 오버레이 표시를 갱신합니다.
         /// </summary>
         private void FocusCheckTimer_Tick(object sender, EventArgs e)
         {
+            this.SyncMousePressStateIfChanged();
             this.UpdateOverlayVisibilityByFocus(forceRefresh: false);
         }
 
@@ -560,7 +565,6 @@ namespace TalesWeaver_Cursor_Assistance
                 return;
             }
 
-            // 기능이 활성화된 경우 마우스 커서 오버레이 표시
             if (this.mCursorForm != null && Form1.mBitmap_Mouse != null)
             {
                 if (!this.mCursorForm.IsHandleCreated)
@@ -574,7 +578,6 @@ namespace TalesWeaver_Cursor_Assistance
                 this.mCursorForm.Location = new Point(cursorPos.X - 1, cursorPos.Y - 1);
             }
 
-            // 스킬 범위 모드가 활성화된 경우 스킬 범위 오버레이 표시 및 위치 갱신
             bool isSkillEnabled = this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange;
             if (isSkillEnabled && this.mSkillForm != null && Form1.mBitmap_Skill != null)
             {
@@ -618,27 +621,46 @@ namespace TalesWeaver_Cursor_Assistance
         #region [5. 마우스 후크 및 실시간 오버레이 추적 (Mouse Hook & Tracking)]
 
         /// <summary>
-        /// 마우스 이동 이벤트 발생 시 기능 활성 상태를 확인하고 커서/지정 범위 오버레이 좌표를 갱신합니다.
+        /// 마우스 버튼이 현재 눌려 있는지 여부를 반환합니다.
+        /// </summary>
+        private static bool IsAnyMouseButtonPressed()
+        {
+            return Control.MouseButtons != MouseButtons.None;
+        }
+
+        /// <summary>
+        /// 마우스 클릭(누름) 상태가 변경되었을 때 커서 크기를 갱신합니다(클릭 중 90%).
+        /// </summary>
+        private void SyncMousePressStateIfChanged()
+        {
+            bool isPressed = IsAnyMouseButtonPressed();
+            if (isPressed != this._isMousePressedCached)
+            {
+                this._isMousePressedCached = isPressed;
+                this.SetCursor();
+            }
+        }
+
+        /// <summary>
+        /// 마우스 이동 이벤트 발생 시 기능 활성 상태 및 클릭 상태를 확인하고 커서/지정 범위 오버레이 좌표를 갱신합니다.
         /// </summary>
         private bool MouseHook_MouseMove(MouseEventType type, int x, int y)
         {
             try
             {
-                // 마우스 이동 시 포커스/활성 상태 즉시 동기화
+                this.SyncMousePressStateIfChanged();
                 this.UpdateOverlayVisibilityByFocus(forceRefresh: false);
                 if (!this._isFeatureActiveCached)
                 {
                     return true;
                 }
 
-                // 1. 커서 오버레이 위치 동기화
                 if (this.mCursorForm != null)
                 {
                     this.mCursorForm.Left = x - 1;
                     this.mCursorForm.Top = y - 1;
                 }
 
-                // 2. 지정 범위 모드 활성화 시 마우스 중심 좌표로 오버레이 이동
                 if (this.SkillEnable_CustomRange && this.mSkillForm != null && Form1.mBitmap_Skill != null)
                 {
                     int width = Form1.mBitmap_Skill.Width;
@@ -658,7 +680,58 @@ namespace TalesWeaver_Cursor_Assistance
         #region [6. 설정 적용 및 커서/스킬 렌더링 (Apply & Rendering)]
 
         /// <summary>
-        /// UI에 입력된 커서 크기, 투명도, 스킬 사거리, 키 치환 유지 시간의 유효성을 검증하고 즉시 반영합니다.
+        /// 직선 범위 모드 활성화 여부에 따라 사거리 입력 컨트롤의 사용 가능 상태를 동기화합니다.
+        /// </summary>
+        private void SyncAttackRangeControlState()
+        {
+            bool enabled = this.SkillEnable_StraightRange;
+            if (this.textBox_Skill_AttackRange != null)
+            {
+                this.textBox_Skill_AttackRange.Enabled = enabled;
+            }
+            if (this.label_Skill_AttackRange != null)
+            {
+                this.label_Skill_AttackRange.Enabled = enabled;
+            }
+        }
+
+        /// <summary>
+        /// 현재 선택된 스킬 범위 색상을 반환합니다(사용자 지정 색상이 있으면 우선 적용).
+        /// </summary>
+        private Color GetActiveSkillRangeColor()
+        {
+            if (this.Skill_CustomColor.HasValue)
+            {
+                return this.Skill_CustomColor.Value;
+            }
+            if (this.SkillEnable_StraightRange)
+            {
+                return Color.Orange;
+            }
+            if (this.SkillEnable_CustomRange)
+            {
+                return Color.Red;
+            }
+            return Color.Cyan;
+        }
+
+        /// <summary>
+        /// 스킬 범위 색상 버튼의 배경색과 전경색을 현재 적용된 색상에 맞춰 동기화합니다.
+        /// </summary>
+        private void SyncSkillColorButtonUi()
+        {
+            if (this.button_Skill_RangeColor == null) return;
+
+            Color c = this.GetActiveSkillRangeColor();
+            this.button_Skill_RangeColor.UseVisualStyleBackColor = false;
+            this.button_Skill_RangeColor.BackColor = c;
+
+            int brightness = (c.R * 299 + c.G * 587 + c.B * 114) / 1000;
+            this.button_Skill_RangeColor.ForeColor = brightness >= 128 ? Color.Black : Color.White;
+        }
+
+        /// <summary>
+        /// UI에 입력된 커서 크기, 투명도, 스킬 사거리, 사거리 오버레이 값, 키 치환 유지 시간의 유효성을 검증하고 즉시 반영합니다.
         /// </summary>
         private void SettingApply_Save()
         {
@@ -684,6 +757,7 @@ namespace TalesWeaver_Cursor_Assistance
                 }
                 this.CursorOpacity = cursorOpacity;
 
+                this._isMousePressedCached = IsAnyMouseButtonPressed();
                 this.SetCursor();
 
                 // 3. 스킬 사거리 검증 (30 ~ 60) 및 적용
@@ -711,15 +785,37 @@ namespace TalesWeaver_Cursor_Assistance
                 }
                 this.Skill_Range = skillRange;
 
+                // 3-1. 직선 범위 내 사거리 오버레이 값 검증 (0 이상, 직선 범위 값 이하)
+                int attackRange = DEFAULT_SKILL_ATTACK_RANGE;
+                if (this.textBox_Skill_AttackRange != null)
+                {
+                    if (!int.TryParse(this.textBox_Skill_AttackRange.Text, out attackRange) || attackRange < 0)
+                    {
+                        MessageBox.Show("사거리는 0 이상의 숫자만 입력 가능합니다.");
+                        attackRange = Math.Min(DEFAULT_SKILL_ATTACK_RANGE, this.Skill_Range);
+                    }
+                    if (attackRange > this.Skill_Range)
+                    {
+                        MessageBox.Show($"사거리는 직선 범위({this.Skill_Range})보다 클 수 없습니다.");
+                        attackRange = this.Skill_Range;
+                    }
+                    this.textBox_Skill_AttackRange.Text = attackRange.ToString();
+                }
+                else if (attackRange > this.Skill_Range)
+                {
+                    attackRange = this.Skill_Range;
+                }
+                this.Skill_AttackRange = attackRange;
+
                 this.SetSkillShape();
 
-                // 4. 키 치환 유지 시간 검증 (0 ~ 60000ms) 및 적용
+                // 4. 키 치환 유지 시간 검증 (0 ~ 2000ms) 및 적용
                 int durationMs = 200;
                 if (this.textBox_SpaceToEnter_Duration != null)
                 {
-                    if (!int.TryParse(this.textBox_SpaceToEnter_Duration.Text, out durationMs) || durationMs < 0 || durationMs > 60000)
+                    if (!int.TryParse(this.textBox_SpaceToEnter_Duration.Text, out durationMs) || durationMs < 0 || durationMs > MAX_SPACE_TO_ENTER_DURATION_MS)
                     {
-                        MessageBox.Show("유지 시간은 0 ~ 60000(ms) 사이의 숫자만 입력 가능합니다.");
+                        MessageBox.Show($"유지 시간은 0 ~ {MAX_SPACE_TO_ENTER_DURATION_MS}(ms) 사이의 숫자만 입력 가능합니다.");
                         durationMs = 200;
                         this.textBox_SpaceToEnter_Duration.Text = durationMs.ToString();
                     }
@@ -737,7 +833,7 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// 현재 Base64 문자열과 크기/투명도 설정을 바탕으로 커서 비트맵을 생성하여 오버레이 폼에 적용합니다.
+        /// 현재 Base64 문자열과 크기/투명도/클릭 상태(누름 시 90%)를 바탕으로 커서 비트맵을 생성하여 오버레이 폼에 적용합니다.
         /// </summary>
         private void SetCursor()
         {
@@ -759,11 +855,13 @@ namespace TalesWeaver_Cursor_Assistance
                     buffer = Convert.FromBase64String(base64);
                 }
 
+                double pressScale = this._isMousePressedCached ? 0.9 : 1.0;
+                int targetSize = Math.Max(1, (int)Math.Round(this.CursorSize * 2 * pressScale));
+
                 Bitmap nextBitmap;
                 using (MemoryStream memoryStream = new MemoryStream(buffer))
                 using (Bitmap bitmap = new Bitmap(memoryStream))
                 {
-                    int targetSize = this.CursorSize * 2;
                     nextBitmap = new Bitmap(bitmap, new Size(targetSize, targetSize));
                 }
 
@@ -788,12 +886,15 @@ namespace TalesWeaver_Cursor_Assistance
 
         /// <summary>
         /// 선택된 스킬 범위 모드와 연마/아이템 옵션에 맞춰 스킬 범위 도형 비트맵을 생성하고 활성 상태 시 오버레이 폼에 출력합니다.
-        /// (자기 중심: Cyan 마름모 / 직선 범위: Orange 타원 / 지정 범위: Red 타원)
+        /// (자기 중심: Cyan 마름모 / 직선 범위: Orange 타원 + 사거리 외곽선 원 / 지정 범위: Red 타원, 사용자 지정 색상 우선)
         /// </summary>
         private void SetSkillShape()
         {
             try
             {
+                this.SyncAttackRangeControlState();
+                this.SyncSkillColorButtonUi();
+
                 bool isAnyEnabled = this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange;
                 if (!isAnyEnabled)
                 {
@@ -809,18 +910,8 @@ namespace TalesWeaver_Cursor_Assistance
                     return;
                 }
 
-                // 모드별 테두리 및 채우기 색상 결정
-                Color activeColor = Color.Cyan;
-                if (this.SkillEnable_StraightRange)
-                {
-                    activeColor = Color.Orange;
-                }
-                else if (this.SkillEnable_CustomRange)
-                {
-                    activeColor = Color.Red;
-                }
+                Color activeColor = this.GetActiveSkillRangeColor();
 
-                // 사거리 및 확장 옵션 계산
                 int effectiveRange = this.Skill_Range;
                 bool isExtChecked = (this.checkBox_Skill_RangeExtension != null && this.checkBox_Skill_RangeExtension.Checked);
                 bool isItemChecked = (this.checkBox_Skill_RangeExtensionItem != null && this.checkBox_Skill_RangeExtensionItem.Checked);
@@ -831,17 +922,17 @@ namespace TalesWeaver_Cursor_Assistance
                 }
                 if (isExtChecked)
                 {
-                    effectiveRange += 20; // 범위 연마
+                    effectiveRange += 20;
                 }
                 if (isItemChecked)
                 {
-                    effectiveRange += 7;  // 불시엔
+                    effectiveRange += 7;
                 }
 
                 int pixelHeight = effectiveRange * 10;
                 if (isExtChecked || isItemChecked && !this.SkillEnable_StraightRange)
                 {
-                    pixelHeight += 100; // 추가 범위 보정
+                    pixelHeight += 100;
                 }
 
                 pixelHeight = Math.Max(this.Skill_Range_Min, Math.Min(this.Skill_Range_Max, pixelHeight));
@@ -850,7 +941,6 @@ namespace TalesWeaver_Cursor_Assistance
                 int shapeHeight = pixelHeight;
                 this.Skill_RangeWidth = shapeWidth;
 
-                // 도형 비트맵 렌더링
                 Bitmap image = new Bitmap(shapeWidth + 4, shapeHeight + 4);
                 using (Graphics graphics = Graphics.FromImage(image))
                 {
@@ -861,7 +951,6 @@ namespace TalesWeaver_Cursor_Assistance
                     {
                         if (this.SkillEnable_UserRange)
                         {
-                            // 1. 자기 중심 범위: 마름모
                             PointF[] points = new PointF[]
                             {
                                 new PointF((float)shapeWidth / 2f + 2f, 2f),
@@ -874,18 +963,42 @@ namespace TalesWeaver_Cursor_Assistance
                         }
                         else if (this.SkillEnable_StraightRange || this.SkillEnable_CustomRange)
                         {
-                            // 2. 직선 범위 / 3. 지정 범위: 타원
                             graphics.FillEllipse(solidBrush, 2f, 2f, (float)shapeWidth, (float)shapeHeight);
                             graphics.DrawEllipse(pen, 2f, 2f, (float)shapeWidth, (float)shapeHeight);
+
+                            if (this.SkillEnable_StraightRange)
+                            {
+                                int clampedAttackRange = Math.Max(0, Math.Min(this.Skill_Range, this.Skill_AttackRange));
+                                int attackEffectiveRange = (int)(clampedAttackRange * 1.7);
+                                if (isExtChecked)
+                                {
+                                    attackEffectiveRange += 20;
+                                }
+                                if (isItemChecked)
+                                {
+                                    attackEffectiveRange += 7;
+                                }
+
+                                int attackHeight = Math.Max(
+                                    this.Skill_Range_Min,
+                                    Math.Min(shapeHeight, attackEffectiveRange * 10));
+                                int attackWidth = Math.Min(shapeWidth, attackHeight * 2);
+
+                                float circleLeft = 2f + (shapeWidth - attackWidth) / 2f;
+                                float circleTop = 2f + (shapeHeight - attackHeight) / 2f;
+
+                                using (Pen attackOutlinePen = new Pen(Color.White, 2f))
+                                {
+                                    graphics.DrawEllipse(attackOutlinePen, circleLeft, circleTop, (float)attackWidth, (float)attackHeight);
+                                }
+                            }
                         }
                     }
                 }
 
-                // 기존 비트맵 교체
                 Bitmap previousSkillBitmap = Form1.mBitmap_Skill;
                 Form1.mBitmap_Skill = image;
 
-                // 기능이 활성화된 상태일 때만 위치 반영 및 표시
                 if (this.mIsLoadForm && this.IsFeatureActiveNow())
                 {
                     this.PositionAndShowSkillForm();
@@ -947,43 +1060,61 @@ namespace TalesWeaver_Cursor_Assistance
                         {
                             this.CursorBase64 = value.Replace("\r", "").Replace("\n", "").Trim();
                         }
-                        else if (key == "SkillEnable_UserRange" && bool.TryParse(value, out bool parsedBool))
+                        else if (key == "SkillEnable_UserRange" && bool.TryParse(value, out bool parsedUserRange))
                         {
-                            this.SkillEnable_UserRange = parsedBool;
+                            this.SkillEnable_UserRange = parsedUserRange;
                         }
-                        else if (key == "SkillEnable_StraightRange" && bool.TryParse(value, out parsedBool))
+                        else if (key == "SkillEnable_StraightRange" && bool.TryParse(value, out bool parsedStraightRange))
                         {
-                            this.SkillEnable_StraightRange = parsedBool;
+                            this.SkillEnable_StraightRange = parsedStraightRange;
                         }
-                        else if (key == "SkillEnable_CustomRange" && bool.TryParse(value, out parsedBool))
+                        else if (key == "SkillEnable_CustomRange" && bool.TryParse(value, out bool parsedCustomRange))
                         {
-                            this.SkillEnable_CustomRange = parsedBool;
+                            this.SkillEnable_CustomRange = parsedCustomRange;
                         }
-                        else if (key == "Skill_RangeExtension" && bool.TryParse(value, out parsedBool))
+                        else if (key == "Skill_RangeColor" && !string.IsNullOrEmpty(value) && !string.Equals(value, "Default", StringComparison.OrdinalIgnoreCase))
                         {
-                            this.Skill_RangeExtension = parsedBool;
-                            if (this.checkBox_Skill_RangeExtension != null) this.checkBox_Skill_RangeExtension.Checked = parsedBool;
+                            try
+                            {
+                                Color parsedColor = ColorTranslator.FromHtml(value);
+                                if (!parsedColor.IsEmpty)
+                                {
+                                    this.Skill_CustomColor = parsedColor;
+                                }
+                            }
+                            catch
+                            {
+                            }
                         }
-                        else if (key == "Skill_RangeExtensionItem" && bool.TryParse(value, out parsedBool))
+                        else if (key == "Skill_RangeExtension" && bool.TryParse(value, out bool parsedRangeExtension))
                         {
-                            this.Skill_RangeExtensionItem = parsedBool;
-                            if (this.checkBox_Skill_RangeExtensionItem != null) this.checkBox_Skill_RangeExtensionItem.Checked = parsedBool;
+                            this.Skill_RangeExtension = parsedRangeExtension;
+                            if (this.checkBox_Skill_RangeExtension != null) this.checkBox_Skill_RangeExtension.Checked = parsedRangeExtension;
+                        }
+                        else if (key == "Skill_RangeExtensionItem" && bool.TryParse(value, out bool parsedRangeExtensionItem))
+                        {
+                            this.Skill_RangeExtensionItem = parsedRangeExtensionItem;
+                            if (this.checkBox_Skill_RangeExtensionItem != null) this.checkBox_Skill_RangeExtensionItem.Checked = parsedRangeExtensionItem;
                         }
                         else if (key == "Skill_Range" && int.TryParse(value, out int parsedSkillRange))
                         {
                             this.Skill_Range = parsedSkillRange;
                         }
+                        else if (key == "Skill_AttackRange" && int.TryParse(value, out int parsedAttackRange))
+                        {
+                            this.Skill_AttackRange = parsedAttackRange;
+                        }
                         else if (key == "Skill_RangeOpacity" && byte.TryParse(value, out byte parsedSkillOpacity))
                         {
                             this.Skill_RangeOpacity = parsedSkillOpacity;
                         }
-                        else if (key == "SpaceToEnter_Enable" && bool.TryParse(value, out parsedBool))
+                        else if (key == "SpaceToEnter_Enable" && bool.TryParse(value, out bool parsedSpaceToEnterEnable))
                         {
-                            this._spaceToEnterEnabled = parsedBool;
+                            this._spaceToEnterEnabled = parsedSpaceToEnterEnable;
                         }
                         else if (key == "SpaceToEnter_DurationMs" && int.TryParse(value, out int parsedDuration) && parsedDuration >= 0)
                         {
-                            this._spaceToEnterDurationMs = parsedDuration;
+                            this._spaceToEnterDurationMs = Math.Min(MAX_SPACE_TO_ENTER_DURATION_MS, parsedDuration);
                         }
                     }
                 }
@@ -992,12 +1123,15 @@ namespace TalesWeaver_Cursor_Assistance
             {
             }
 
-            // 누락 또는 비정상 기본값 보정
             if (this.CursorSize <= 0) this.CursorSize = 20;
             if (this.CursorOpacity == 0) this.CursorOpacity = byte.MaxValue;
             if (string.IsNullOrEmpty(this.CursorBase64)) this.CursorBase64 = PRESET_DEFAULT;
             if (this.Skill_Range <= 0) this.Skill_Range = 44;
+            if (this.Skill_AttackRange < 0) this.Skill_AttackRange = DEFAULT_SKILL_ATTACK_RANGE;
+            if (this.Skill_AttackRange > this.Skill_Range) this.Skill_AttackRange = this.Skill_Range;
             if (this.Skill_RangeOpacity <= 0) this.Skill_RangeOpacity = byte.MaxValue;
+            if (this._spaceToEnterDurationMs < 0) this._spaceToEnterDurationMs = 200;
+            if (this._spaceToEnterDurationMs > MAX_SPACE_TO_ENTER_DURATION_MS) this._spaceToEnterDurationMs = MAX_SPACE_TO_ENTER_DURATION_MS;
 
             int calcHeight = Math.Max(this.Skill_Range_Min, Math.Min(this.Skill_Range_Max, this.Skill_Range * 10));
             this.Skill_RangeHeight = calcHeight;
@@ -1015,8 +1149,12 @@ namespace TalesWeaver_Cursor_Assistance
                     ? ""
                     : this.CursorBase64.Replace("\r", "").Replace("\n", "").Trim();
 
+                string colorValue = this.Skill_CustomColor.HasValue
+                    ? ColorTranslator.ToHtml(this.Skill_CustomColor.Value)
+                    : "Default";
+
                 string contents = string.Format(
-                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeExtension={7}\nSkill_RangeExtensionItem={8}\nSkill_Range={9}\nSkill_RangeOpacity={10}\nSpaceToEnter_Enable={11}\nSpaceToEnter_DurationMs={12}",
+                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_RangeExtension={8}\nSkill_RangeExtensionItem={9}\nSkill_Range={10}\nSkill_AttackRange={11}\nSkill_RangeOpacity={12}\nSpaceToEnter_Enable={13}\nSpaceToEnter_DurationMs={14}",
                     new object[]
                     {
                         this._onlyWhenTalesWeaverRunning,
@@ -1026,9 +1164,11 @@ namespace TalesWeaver_Cursor_Assistance
                         this.SkillEnable_UserRange,
                         this.SkillEnable_StraightRange,
                         this.SkillEnable_CustomRange,
+                        colorValue,
                         this.Skill_RangeExtension,
                         this.Skill_RangeExtensionItem,
                         this.Skill_Range,
+                        this.Skill_AttackRange,
                         this.Skill_RangeOpacity,
                         this._spaceToEnterEnabled,
                         this._spaceToEnterDurationMs
@@ -1332,6 +1472,32 @@ namespace TalesWeaver_Cursor_Assistance
 
         #region [8-4. 스킬 범위 UI 핸들러]
         /// <summary>
+        /// 스킬 범위 오버레이 색상 선택 대화상자를 열고 선택한 색상을 즉시 반영합니다.
+        /// </summary>
+        private void button_Skill_RangeColor_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (ColorDialog dialog = new ColorDialog())
+                {
+                    dialog.FullOpen = true;
+                    dialog.Color = this.GetActiveSkillRangeColor();
+
+                    if (dialog.ShowDialog(this) == DialogResult.OK)
+                    {
+                        this.Skill_CustomColor = dialog.Color;
+                        this.SyncSkillColorButtonUi();
+                        this.SetSkillShape();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("색상 변경 실패: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+            }
+        }
+
+        /// <summary>
         /// '[사용안함]' 라디오 버튼 선택 시 모든 스킬 범위 오버레이를 비활성화합니다.
         /// </summary>
         private void radioButton_Skill_None_CheckedChanged(object sender, EventArgs e)
@@ -1343,6 +1509,7 @@ namespace TalesWeaver_Cursor_Assistance
                     this.SkillEnable_UserRange = false;
                     this.SkillEnable_StraightRange = false;
                     this.SkillEnable_CustomRange = false;
+                    this.SyncAttackRangeControlState();
                     this.SetSkillShape();
                 }
             }
@@ -1368,6 +1535,7 @@ namespace TalesWeaver_Cursor_Assistance
                     this.SkillEnable_StraightRange = false;
                     this.SkillEnable_CustomRange = false;
                 }
+                this.SyncAttackRangeControlState();
 
                 if (this.textBox_Skill_Range != null && int.TryParse(this.textBox_Skill_Range.Text, out int range))
                 {
@@ -1384,7 +1552,7 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// '[직선 범위]' 라디오 버튼 상태 변경 시 오버레이를 갱신합니다.
+        /// '[직선 범위]' 라디오 버튼 상태 변경 시 오버레이 및 사거리 컨트롤 상태를 갱신합니다.
         /// </summary>
         private void radioButton_Skill_StraightRange_CheckedChanged(object sender, EventArgs e)
         {
@@ -1399,6 +1567,7 @@ namespace TalesWeaver_Cursor_Assistance
                     this.SkillEnable_UserRange = false;
                     this.SkillEnable_CustomRange = false;
                 }
+                this.SyncAttackRangeControlState();
 
                 if (this.textBox_Skill_Range != null && int.TryParse(this.textBox_Skill_Range.Text, out int range))
                 {
@@ -1430,6 +1599,7 @@ namespace TalesWeaver_Cursor_Assistance
                     this.SkillEnable_UserRange = false;
                     this.SkillEnable_StraightRange = false;
                 }
+                this.SyncAttackRangeControlState();
 
                 if (this.textBox_Skill_Range != null && int.TryParse(this.textBox_Skill_Range.Text, out int range))
                 {
@@ -1505,7 +1675,7 @@ namespace TalesWeaver_Cursor_Assistance
 
         #region [8-5. 키 치환 UI 핸들러]
         /// <summary>
-        /// '치환 기능 사용' 체크박스 상태 변경 시 활성화 여부와 입력창 상태 및 타이머를 동기화합니다.
+        /// 'Space → Enter 치환 (1~5 키) 기능 사용' 체크박스 상태 변경 시 활성화 여부와 입력창 상태 및 타이머를 동기화합니다.
         /// </summary>
         private void checkBox_SpaceToEnter_Enable_CheckedChanged(object sender, EventArgs e)
         {
@@ -1577,7 +1747,7 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// 저수준 키보드 후크 콜백: 기능 활성 상태에서 1~5 키 입력 후 지정 시간 이내에 눌린 Space를 Enter로 치환합니다.
+        /// 저수준 키보드 후크 콜백: 기능 활성 상태에서 1~5 키 입력 후 지정 시간(최대 2000ms) 이내에 눌린 Space를 Enter로 치환합니다.
         /// </summary>
         private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
@@ -1590,7 +1760,7 @@ namespace TalesWeaver_Cursor_Assistance
 
                     if (IsTriggerNumberKey(vkCode) && this.IsFeatureActiveNow())
                     {
-                        int duration = Math.Max(0, this._spaceToEnterDurationMs);
+                        int duration = Math.Max(0, Math.Min(MAX_SPACE_TO_ENTER_DURATION_MS, this._spaceToEnterDurationMs));
                         lock (this._spaceEnterLock)
                         {
                             this._spaceAsEnterUntilTick = GetSafeTickCount64() + duration;
