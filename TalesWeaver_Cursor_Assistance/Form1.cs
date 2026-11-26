@@ -128,6 +128,8 @@ namespace TalesWeaver_Cursor_Assistance
             this.InitializeConvenienceModule();
 
             this.InitializeComponent();
+
+            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         }
 
         /// <summary>
