@@ -108,6 +108,7 @@ namespace TalesWeaver_Cursor_Assistance
             ShowWindow(this.mCursorForm.Handle, SW_SHOWNOACTIVATE);
             this.mCursorForm.SetBitmap(Form1.mBitmap_Mouse, this.CursorOpacity);
             this.mCursorForm.Location = new Point(cursorPos.X - 1, cursorPos.Y - 1);
+            this.EnsureCursorOverlayAboveSkillOverlay();
         }
 
         /// <summary>
@@ -244,6 +245,7 @@ namespace TalesWeaver_Cursor_Assistance
                 if (this.mIsLoadForm && this.IsFeatureActiveNow())
                 {
                     this.mCursorForm.SetBitmap(Form1.mBitmap_Mouse, this.CursorOpacity);
+                    this.EnsureCursorOverlayAboveSkillOverlay();
                 }
 
                 if (previousBitmap != null && !ReferenceEquals(previousBitmap, nextBitmap))

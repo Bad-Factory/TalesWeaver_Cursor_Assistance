@@ -209,6 +209,7 @@ namespace TalesWeaver_Cursor_Assistance
             this.mSkillForm.Location = new Point(left, top);
             this.mSkillForm.SetBitmap(Form1.mBitmap_Skill, this.Skill_RangeOpacity);
             this.mSkillForm.Location = new Point(left, top);
+            this.EnsureCursorOverlayAboveSkillOverlay();
         }
         #endregion
 

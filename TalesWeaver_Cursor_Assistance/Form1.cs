@@ -100,6 +100,21 @@ namespace TalesWeaver_Cursor_Assistance
             public int Right;
             public int Bottom;
         }
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOACTIVATE = 0x0010;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(
+            IntPtr hWnd,
+            IntPtr hWndInsertAfter,
+            int X,
+            int Y,
+            int cx,
+            int cy,
+            uint uFlags);
         #endregion
 
         #endregion
@@ -396,6 +411,43 @@ namespace TalesWeaver_Cursor_Assistance
 
             this.ShowCursorOverlay();
             this.ShowSkillOverlayIfEnabled();
+            this.EnsureCursorOverlayAboveSkillOverlay();
+        }
+
+        /// <summary>
+        /// 커서 오버레이(mCursorForm)가 스킬 범위 오버레이(mSkillForm)보다 항상 상단 Z-순서에 위치하도록 정렬합니다.
+        /// </summary>
+        private void EnsureCursorOverlayAboveSkillOverlay()
+        {
+            if (this.mCursorForm == null || this.mCursorForm.IsDisposed || !this.mCursorForm.Visible)
+            {
+                return;
+            }
+
+            if (!this.mCursorForm.IsHandleCreated)
+            {
+                IntPtr _ = this.mCursorForm.Handle;
+            }
+
+            if (this.mSkillForm != null && !this.mSkillForm.IsDisposed && this.mSkillForm.Visible)
+            {
+                if (!this.mSkillForm.IsHandleCreated)
+                {
+                    IntPtr _ = this.mSkillForm.Handle;
+                }
+
+                SetWindowPos(
+                    this.mSkillForm.Handle,
+                    HWND_TOPMOST,
+                    0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+
+            SetWindowPos(
+                this.mCursorForm.Handle,
+                HWND_TOPMOST,
+                0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
         #endregion
 
