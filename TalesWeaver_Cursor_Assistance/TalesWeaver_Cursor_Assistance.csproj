@@ -10,7 +10,7 @@
     <AssemblyName>TalesWeaver_Cursor_Assistance</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <ApplicationIcon>TalesWeaver_Cursor_Assistance.ico</ApplicationIcon>
+    <ApplicationIcon>Resx\TalesWeaver_Cursor_Assistance.ico</ApplicationIcon>
     <StartupObject>TalesWeaver_Cursor_Assistance.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -81,13 +81,13 @@
     <None Include="Properties\app.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="TalesWeaver_Cursor_Assistance.ico" />
+    <Content Include="Resx\TalesWeaver_Cursor_Assistance.ico" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Form1.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
