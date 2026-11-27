@@ -1,4 +1,5 @@
 ﻿using Hook;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -21,6 +22,10 @@ namespace TalesWeaver_Cursor_Assistance
         private const int MAX_SPACE_TO_ENTER_DURATION_MS = 2000;
         /// <summary>직선 범위 내 사거리 오버레이 기본값</summary>
         private const int DEFAULT_SKILL_ATTACK_RANGE = 30;
+        /// <summary>Windows 시작 프로그램 레지스트리 경로</summary>
+        private const string STARTUP_REGISTRY_KEY_PATH = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+        /// <summary>Windows 시작 프로그램 레지스트리 등록 이름</summary>
+        private const string STARTUP_APP_NAME = "TalesWeaver_Cursor_Assistance";
         #endregion
 
         #region [1-2. Win32 API 상수]
@@ -162,10 +167,17 @@ namespace TalesWeaver_Cursor_Assistance
 
                 this.LoadSettings();
                 this.SyncOnlyWhenTalesWeaverRunningUi();
+                this.InitStartupOptionsUiOnLoad();
 
                 this.InitCursorUiOnLoad();
                 this.InitSkillUiOnLoad();
                 this.InitConvenienceUiOnLoad();
+
+                if (this.notifyIcon1 != null && this.Icon != null)
+                {
+                    this.notifyIcon1.Icon = this.Icon;
+                    this.notifyIcon1.Visible = true;
+                }
 
                 this.mIsLoadForm = true;
                 this.SetSkillShape();
@@ -180,6 +192,18 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
+        /// 메인 폼의 레이아웃 계산 및 컨트롤 배치를 즉시 동기화합니다.
+        /// </summary>
+        private void EnsureFormLayoutSynced()
+        {
+            if (this.IsDisposed) return;
+
+            this.ResumeLayout(false);
+            this.PerformLayout();
+            this.Update();
+        }
+
+        /// <summary>
         /// 폼이 화면에 처음 표시될 때 초기화 누락 여부를 재확인하고 포커스를 활성화합니다.
         /// </summary>
         private void Form1_Shown(object sender, EventArgs e)
@@ -187,12 +211,13 @@ namespace TalesWeaver_Cursor_Assistance
             if (!this.mIsLoadForm)
             {
                 this.SyncOnlyWhenTalesWeaverRunningUi();
+                this.InitStartupOptionsUiOnLoad();
                 this.InitCursorUiOnShown();
                 this.InitSkillUiOnShown();
                 this.UpdateOverlayVisibilityByFocus(forceRefresh: true);
             }
             this.mIsLoadForm = true;
-
+            this.EnsureFormLayoutSynced();
             this.Activate();
             this.Focus();
         }
@@ -487,6 +512,7 @@ namespace TalesWeaver_Cursor_Assistance
                 this.ApplyCursorSettingsFromUi();
                 this.ApplySkillSettingsFromUi();
                 this.ApplyConvenienceSettingsFromUi();
+                this.ApplyStartupOptionsFromUi();
             }
             catch (Exception)
             {
@@ -616,6 +642,8 @@ namespace TalesWeaver_Cursor_Assistance
                 return;
             }
 
+            this.ShowInTaskbar = true;
+
             if (!this.Visible)
             {
                 this.Show();
@@ -644,21 +672,38 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// [트레이로 최소화] 버튼 클릭 시 메인 폼을 숨깁니다.
+        /// 폼 크기 변경 시 최소화 상태이면 메인 폼을 숨겨 트레이로 보냅니다.
         /// </summary>
-        private void button_MinimizeTray_Click(object sender, EventArgs e)
+        private void Form1_Resize(object sender, EventArgs e)
         {
-            base.Hide();
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.Hide();
+            }
+        }
+
+        /// <summary>
+        /// 폼 레이아웃 동기화 완료 후 메인 폼을 숨겨 트레이로 최소화합니다.
+        /// </summary>
+        private void MinimizeToTray()
+        {
+            this.EnsureFormLayoutSynced();
+
+            if (this.WindowState != FormWindowState.Minimized)
+            {
+                this.WindowState = FormWindowState.Minimized;
+            }
+            this.Hide();
         }
 
         /// <summary>
         /// ESC 키 입력 시 메인 폼을 트레이로 숨깁니다.
         /// </summary>
-        private void button_MinimizeTray_KeyDown(object sender, KeyEventArgs e)
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Escape)
             {
-                button_MinimizeTray_Click(sender, e);
+                this.MinimizeToTray();
                 e.Handled = true;
                 e.SuppressKeyPress = true;
             }
@@ -717,6 +762,100 @@ namespace TalesWeaver_Cursor_Assistance
             catch (Exception)
             {
             }
+        }
+
+        /// <summary>
+        /// 폼 로드 시 레지스트리 및 INI 상태를 읽어 하단 시작 옵션 체크박스 UI를 동기화합니다.
+        /// </summary>
+        /// <summary>
+        /// 폼 로드 시 레지스트리 및 INI 상태를 읽어 하단 시작 옵션 체크박스 UI를 동기화합니다.
+        /// </summary>
+        private void InitStartupOptionsUiOnLoad()
+        {
+            if (this.checkBox_RunAtStartup != null)
+            {
+                this.checkBox_RunAtStartup.Checked = this.IsRegisteredInStartup();
+            }
+        }
+
+        /// <summary>
+        /// '설정값 저장' 시점에 체크박스 상태를 기준으로 시작 프로그램 레지스트리 및 시작 시 트레이 최소화 설정을 적용합니다.
+        /// </summary>
+        private void ApplyStartupOptionsFromUi()
+        {
+            if (this.checkBox_RunAtStartup != null)
+            {
+                bool desiredRunAtStartup = this.checkBox_RunAtStartup.Checked;
+                try
+                {
+                    this.SetRunAtStartup(desiredRunAtStartup);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("시작 프로그램 등록 설정에 실패했습니다: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    this.checkBox_RunAtStartup.Checked = this.IsRegisteredInStartup();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 현재 실행 파일이 Windows 시작 프로그램 레지스트리에 등록되어 있는지 확인합니다.
+        /// </summary>
+        private bool IsRegisteredInStartup()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(STARTUP_REGISTRY_KEY_PATH, false))
+                {
+                    if (key == null) return false;
+                    object value = key.GetValue(STARTUP_APP_NAME);
+                    if (value == null) return false;
+
+                    string regPath = value.ToString().Trim('"');
+                    return string.Equals(regPath, Application.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Windows 시작 프로그램 레지스트리에 현재 실행 파일을 등록하거나 해제합니다.
+        /// </summary>
+        private void SetRunAtStartup(bool enable)
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(STARTUP_REGISTRY_KEY_PATH, true))
+            {
+                if (key == null)
+                {
+                    throw new InvalidOperationException("시작 프로그램 레지스트리 키를 열 수 없습니다.");
+                }
+
+                if (enable)
+                {
+                    key.SetValue(STARTUP_APP_NAME, $"\"{Application.ExecutablePath}\"");
+                }
+                else if (key.GetValue(STARTUP_APP_NAME) != null)
+                {
+                    key.DeleteValue(STARTUP_APP_NAME, false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// '시작 프로그램 등록' 체크박스 상태 변경 이벤트(실제 반영은 '설정값 저장' 시 수행).
+        /// </summary>
+        private void checkBox_RunAtStartup_CheckedChanged(object sender, EventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// '시작 시 트레이 최소화' 체크박스 상태 변경 이벤트(실제 반영 및 INI 저장은 '설정값 저장' 시 수행).
+        /// </summary>
+        private void checkBox_StartMinimized_CheckedChanged(object sender, EventArgs e)
+        {
         }
         #endregion
     }

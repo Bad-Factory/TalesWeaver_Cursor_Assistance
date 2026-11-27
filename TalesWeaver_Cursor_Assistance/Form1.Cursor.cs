@@ -281,9 +281,9 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// [커서 변경] 버튼 클릭 시 입력된 Base64 이미지 유효성을 검사하고 커서를 교체합니다.
+        /// 입력된 Base64 이미지 유효성을 검사하고 커서를 교체합니다.
         /// </summary>
-        private void button_ChangeCursor_Click(object sender, EventArgs e)
+        private void ApplyCursorBase64FromUi()
         {
             try
             {
@@ -302,11 +302,25 @@ namespace TalesWeaver_Cursor_Assistance
 
                 this.CursorBase64 = text;
                 this.textBox_CursorBase64.Text = text;
+                this.UpdatePresetSelection();
                 this.SetCursor();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("유효하지 않은 Base64 이미지 코드입니다: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+            }
+        }
+
+        /// <summary>
+        /// 커서 Base64 입력란에서 Enter 키 입력 시 커서를 변경합니다.
+        /// </summary>
+        private void textBox_CursorBase64_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                this.ApplyCursorBase64FromUi();
             }
         }
 

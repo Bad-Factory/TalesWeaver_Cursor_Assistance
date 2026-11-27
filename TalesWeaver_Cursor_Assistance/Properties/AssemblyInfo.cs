@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 [assembly: AssemblyVersion("1.0.0.1")]
-[assembly: AssemblyTitle("MouseHighlight")]
+[assembly: AssemblyTitle("TalesWeaver Cursor Assistance")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Catnip5")]
-[assembly: AssemblyProduct("Mouse Highlight")]
-[assembly: AssemblyCopyright("Copyright ©  2020 Catnip5.com")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("TalesWeaver Cursor Assistance")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("74014b01-600f-4b10-98ec-e1a3fbaaa117")]

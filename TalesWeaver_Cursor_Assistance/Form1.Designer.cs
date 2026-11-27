@@ -69,9 +69,7 @@
             this.Skill_Range_Opacity = new System.Windows.Forms.TrackBar();
             ((System.ComponentModel.ISupportInitialize)(this.Skill_Range_Opacity)).BeginInit();
 
-            this.button_ChangeCursor = new global::System.Windows.Forms.Button();
             this.button_Apply = new global::System.Windows.Forms.Button();
-            this.button_MinimizeTray = new global::System.Windows.Forms.Button();
             this.notifyIcon1 = new global::System.Windows.Forms.NotifyIcon();
             this.contextMenuStrip1 = new global::System.Windows.Forms.ContextMenuStrip();
             this.toolStripMenuItemOpen = new global::System.Windows.Forms.ToolStripMenuItem();
@@ -81,6 +79,10 @@
             this.checkBox_SpaceToEnter_Enable = new global::System.Windows.Forms.CheckBox();
             this.textBox_SpaceToEnter_Duration = new global::System.Windows.Forms.TextBox();
             this.label_SpaceToEnter_Duration = new global::System.Windows.Forms.Label();
+
+            this.checkBox_RunAtStartup = new global::System.Windows.Forms.CheckBox();
+            this.checkBox_StartMinimized = new global::System.Windows.Forms.CheckBox();
+            this.button_Apply = new global::System.Windows.Forms.Button();
             #endregion
 
             #region [2-2. 레이아웃 일괄 업데이트 일시 정지 (SuspendLayout)]
@@ -217,6 +219,7 @@
             this.textBox_CursorBase64.Name = "textBox_CursorBase64";
             this.textBox_CursorBase64.Size = new global::System.Drawing.Size(300, 55);
             this.textBox_CursorBase64.TabIndex = 4;
+            this.textBox_CursorBase64.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.textBox_CursorBase64_KeyDown);
             #endregion
 
             #region [2-6. 센터 스킬 영역 오버레이 그룹 UI 배치 및 속성 설정 (groupBox_Skill)]
@@ -432,36 +435,38 @@
             #endregion
 
             #region [2-7. 하단 메인 제어 버튼 UI 배치 및 속성 설정]
-            this.button_ChangeCursor.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_ChangeCursor.Location = new global::System.Drawing.Point(15, 738);
-            this.button_ChangeCursor.Name = "button_ChangeCursor";
-            this.button_ChangeCursor.Size = new global::System.Drawing.Size(103, 35);
-            this.button_ChangeCursor.TabIndex = 5;
-            this.button_ChangeCursor.Text = "커서 변경";
-            this.button_ChangeCursor.UseCompatibleTextRendering = true;
-            this.button_ChangeCursor.UseVisualStyleBackColor = true;
-            this.button_ChangeCursor.Click += new System.EventHandler(this.button_ChangeCursor_Click);
 
-            this.button_Apply.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_Apply.Location = new global::System.Drawing.Point(123, 738);
+            this.checkBox_RunAtStartup.AutoSize = true;
+            this.checkBox_RunAtStartup.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.checkBox_RunAtStartup.Location = new global::System.Drawing.Point(15, 735);
+            this.checkBox_RunAtStartup.Name = "checkBox_RunAtStartup";
+            this.checkBox_RunAtStartup.Size = new global::System.Drawing.Size(130, 20);
+            this.checkBox_RunAtStartup.TabIndex = 5;
+            this.checkBox_RunAtStartup.Text = "시작 프로그램 등록";
+            this.checkBox_RunAtStartup.UseCompatibleTextRendering = true;
+            this.checkBox_RunAtStartup.UseVisualStyleBackColor = true;
+            this.checkBox_RunAtStartup.CheckedChanged += new System.EventHandler(this.checkBox_RunAtStartup_CheckedChanged);
+
+            this.checkBox_StartMinimized.AutoSize = true;
+            this.checkBox_StartMinimized.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.checkBox_StartMinimized.Location = new global::System.Drawing.Point(15, 759);
+            this.checkBox_StartMinimized.Name = "checkBox_StartMinimized";
+            this.checkBox_StartMinimized.Size = new global::System.Drawing.Size(150, 20);
+            this.checkBox_StartMinimized.TabIndex = 6;
+            this.checkBox_StartMinimized.Text = "시작 시 트레이 최소화";
+            this.checkBox_StartMinimized.UseCompatibleTextRendering = true;
+            this.checkBox_StartMinimized.UseVisualStyleBackColor = true;
+            this.checkBox_StartMinimized.CheckedChanged += new System.EventHandler(this.checkBox_StartMinimized_CheckedChanged);
+
+            this.button_Apply.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.button_Apply.Location = new global::System.Drawing.Point(205, 735);
             this.button_Apply.Name = "button_Apply";
-            this.button_Apply.Size = new global::System.Drawing.Size(103, 35);
-            this.button_Apply.TabIndex = 6;
+            this.button_Apply.Size = new global::System.Drawing.Size(140, 44);
+            this.button_Apply.TabIndex = 7;
             this.button_Apply.Text = "설정값 저장";
             this.button_Apply.UseCompatibleTextRendering = true;
             this.button_Apply.UseVisualStyleBackColor = true;
             this.button_Apply.Click += new System.EventHandler(this.button_Apply_Click);
-
-            this.button_MinimizeTray.Font = new global::System.Drawing.Font("Segoe UI", 8.5f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_MinimizeTray.Location = new global::System.Drawing.Point(231, 738);
-            this.button_MinimizeTray.Name = "button_MinimizeTray";
-            this.button_MinimizeTray.Size = new global::System.Drawing.Size(114, 35);
-            this.button_MinimizeTray.TabIndex = 7;
-            this.button_MinimizeTray.Text = "트레이로 최소화";
-            this.button_MinimizeTray.UseCompatibleTextRendering = true;
-            this.button_MinimizeTray.UseVisualStyleBackColor = true;
-            this.button_MinimizeTray.Click += new System.EventHandler(this.button_MinimizeTray_Click);
-            base.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.button_MinimizeTray_KeyDown);
             #endregion
 
             #region [2-8. 시스템 트레이 아이콘 및 우클릭 컨텍스트 메뉴 설정]
@@ -495,17 +500,23 @@
             base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
             this.AutoSize = true;
-            base.ClientSize = new global::System.Drawing.Size(360, 788);
+            base.ClientSize = new global::System.Drawing.Size(360, 794);
             base.KeyPreview = true;
 
             base.Controls.Add(this.button_OnlyWhenTalesWeaverRunning);
-            base.Controls.Add(this.button_MinimizeTray);
+            base.Controls.Add(this.checkBox_RunAtStartup);
+            base.Controls.Add(this.checkBox_StartMinimized);
             base.Controls.Add(this.button_Apply);
-            base.Controls.Add(this.button_ChangeCursor);
             base.Controls.Add(this.groupBox_Skill);
             base.Controls.Add(this.groupBox_CustomCursor);
             base.Controls.Add(this.groupBox_MouseHighlight);
             base.Controls.Add(this.groupBox_SpaceToEnter);
+
+            base.FormBorderStyle = global::System.Windows.Forms.FormBorderStyle.FixedDialog;
+            base.MinimizeBox = true;
+            base.MaximizeBox = false;
+            base.Resize += new System.EventHandler(this.Form1_Resize);
+            base.KeyDown += new global::System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
 
             this.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             base.FormBorderStyle = global::System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -530,6 +541,7 @@
             this.groupBox_SpaceToEnter.ResumeLayout(false);
             this.groupBox_SpaceToEnter.PerformLayout();
             base.ResumeLayout(false);
+            this.PerformLayout();
             #endregion
 
             #region [2-11. 툴팁(ToolTip) 안내 메시지 설정]
@@ -547,11 +559,11 @@
             this.toolTip1.SetToolTip(this.textBox_Skill_Range, "자기 중심 범위 : 기본 44 / 예프넨 48\n직선 범위 : 기본 40 ' 30\n지정 범위 : 기본 32 / 예프넨 36");
             this.toolTip1.SetToolTip(this.textBox_Skill_AttackRange, "직선 범위 사용 시 겹치는 사거리 외곽선 원 값 (기본 30, 직선 범위 값 이하)");
             this.toolTip1.SetToolTip(this.button_Skill_AttackRangeColor, "직선 범위 내 사거리 외곽선 원 색상을 선택합니다 (기본 흰색)");
-            this.toolTip1.SetToolTip(this.button_ChangeCursor, "선택/입력한 Base64 코드로 커서를 변경합니다");
             this.toolTip1.SetToolTip(this.button_Apply, "현재 변경된 모든 설정값을 설정 파일에 저장합니다");
-            this.toolTip1.SetToolTip(this.button_MinimizeTray, "[ESC] 프로그램을 작업 표시줄에서 숨기고 시스템 트레이로 내립니다");
             this.toolTip1.SetToolTip(this.checkBox_SpaceToEnter_Enable, "1~5 키 입력 후 지정된 시간(ms) 동안 Space 키를 Enter 키로 변환합니다");
             this.toolTip1.SetToolTip(this.textBox_SpaceToEnter_Duration, "Space → Enter 변환이 유지되는 시간(ms, 최대 2000ms)");
+            this.toolTip1.SetToolTip(this.checkBox_RunAtStartup, "Windows 시작 시 프로그램을 자동으로 실행합니다");
+            this.toolTip1.SetToolTip(this.checkBox_StartMinimized, "프로그램 실행 시 메인 창을 열지 않고 시스템 트레이로 최소화합니다");
             #endregion
         }
         #endregion
@@ -586,8 +598,6 @@
         #region [3-4. 하단 제어 버튼 및 시스템 트레이/메뉴 관련 필드]
         /// <summary>설정값 저장 버튼</summary>
         private global::System.Windows.Forms.Button button_Apply;
-        /// <summary>트레이로 최소화 버튼</summary>
-        private global::System.Windows.Forms.Button button_MinimizeTray;
         /// <summary>시스템 트레이 아이콘 컨트롤</summary>
         private global::System.Windows.Forms.NotifyIcon notifyIcon1;
         /// <summary>트레이 아이콘 우클릭 컨텍스트 메뉴 스트립</summary>
@@ -596,6 +606,10 @@
         private global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItemOpen;
         /// <summary>트레이 메뉴 [종료] 항목</summary>
         private global::System.Windows.Forms.ToolStripMenuItem toolStripMenuItemExit;
+        /// <summary>Windows 시작 프로그램 등록 체크박스</summary>
+        private global::System.Windows.Forms.CheckBox checkBox_RunAtStartup;
+        /// <summary>프로그램 시작 시 트레이 최소화 체크박스</summary>
+        private global::System.Windows.Forms.CheckBox checkBox_StartMinimized;
         #endregion
 
         #region [3-5. 커서 프리셋 및 Base64 입력 관련 필드]
@@ -603,8 +617,6 @@
         private global::System.Windows.Forms.GroupBox groupBox_CustomCursor;
         /// <summary>커서 Base64 코드 입력 텍스트박스</summary>
         private global::System.Windows.Forms.TextBox textBox_CursorBase64;
-        /// <summary>커서 변경 적용 버튼</summary>
-        private global::System.Windows.Forms.Button button_ChangeCursor;
         /// <summary>커서 설명 안내 라벨</summary>
         private global::System.Windows.Forms.Label label_CursorDesc;
         /// <summary>Base64 변환 링크 라벨</summary>
