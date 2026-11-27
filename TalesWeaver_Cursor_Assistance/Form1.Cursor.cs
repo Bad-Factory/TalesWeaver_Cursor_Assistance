@@ -242,7 +242,7 @@ namespace TalesWeaver_Cursor_Assistance
                 Bitmap previousBitmap = Form1.mBitmap_Mouse;
                 Form1.mBitmap_Mouse = nextBitmap;
 
-                if (this.mIsLoadForm && this.IsFeatureActiveNow())
+                if (this.mIsLoadForm && this.IsFeatureActiveNow() && this.mCursorForm != null)
                 {
                     this.mCursorForm.SetBitmap(Form1.mBitmap_Mouse, this.CursorOpacity);
                     this.EnsureCursorOverlayAboveSkillOverlay();
@@ -253,9 +253,8 @@ namespace TalesWeaver_Cursor_Assistance
                     previousBitmap.Dispose();
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show("커서 이미지 디코딩에 실패했습니다: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
             }
         }
         #endregion

@@ -80,7 +80,11 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 this.radioButton_Skill_None.Checked = true;
             }
-            if (this.Skill_Range_Opacity != null) this.Skill_Range_Opacity.Value = this.Skill_RangeOpacity;
+            if (this.Skill_Range_Opacity != null)
+            {
+                int opacityVal = Math.Max(this.Skill_Range_Opacity.Minimum, Math.Min(this.Skill_Range_Opacity.Maximum, (int)this.Skill_RangeOpacity));
+                this.Skill_Range_Opacity.Value = opacityVal;
+            }
             this.SyncAttackRangeControlState();
             this.SyncSkillColorButtonUi();
             this.SyncAttackRangeColorButtonUi();
@@ -93,6 +97,11 @@ namespace TalesWeaver_Cursor_Assistance
         {
             if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
             if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
+            if (this.Skill_Range_Opacity != null)
+            {
+                int opacityVal = Math.Max(this.Skill_Range_Opacity.Minimum, Math.Min(this.Skill_Range_Opacity.Maximum, (int)this.Skill_RangeOpacity));
+                this.Skill_Range_Opacity.Value = opacityVal;
+            }
             this.SyncAttackRangeControlState();
             this.SyncSkillColorButtonUi();
             this.SyncAttackRangeColorButtonUi();
@@ -484,15 +493,15 @@ namespace TalesWeaver_Cursor_Assistance
                 }
 
                 int pixelHeight = effectiveRange * 10;
-                if (isExtChecked || isItemChecked && !this.SkillEnable_StraightRange)
+                if (isExtChecked || (isItemChecked && !this.SkillEnable_StraightRange))
                 {
                     pixelHeight += 100;
                 }
 
-                pixelHeight = Math.Max(this.Skill_Range_Min, Math.Min(this.Skill_Range_Max, pixelHeight));
+                pixelHeight = Math.Max(1, Math.Max(this.Skill_Range_Min, Math.Min(this.Skill_Range_Max, pixelHeight)));
 
-                int shapeWidth = pixelHeight * 2;
-                int shapeHeight = pixelHeight;
+                int shapeWidth = Math.Max(1, pixelHeight * 2);
+                int shapeHeight = Math.Max(1, pixelHeight);
                 this.Skill_RangeWidth = shapeWidth;
 
                 Bitmap image = new Bitmap(shapeWidth + 4, shapeHeight + 4);
@@ -534,9 +543,11 @@ namespace TalesWeaver_Cursor_Assistance
                                 }
 
                                 int attackHeight = Math.Max(
-                                    this.Skill_Range_Min,
-                                    Math.Min(shapeHeight, attackEffectiveRange * 10));
-                                int attackWidth = Math.Min(shapeWidth, attackHeight * 2);
+                                    1,
+                                    Math.Max(
+                                        this.Skill_Range_Min,
+                                        Math.Min(shapeHeight, attackEffectiveRange * 10)));
+                                int attackWidth = Math.Max(1, Math.Min(shapeWidth, attackHeight * 2));
 
                                 float circleLeft = 2f + (shapeWidth - attackWidth) / 2f;
                                 float circleTop = 2f + (shapeHeight - attackHeight) / 2f;
@@ -567,17 +578,13 @@ namespace TalesWeaver_Cursor_Assistance
                     previousSkillBitmap.Dispose();
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show("범위 생성 실패: " + ex.Message);
             }
         }
         #endregion
 
         #region [5. 스킬 범위 UI 이벤트 핸들러]
-        /// <summary>
-        /// 스킬 범위 오버레이 색상 선택 대화상자를 열고 선택한 색상을 즉시 반영합니다.
-        /// </summary>
         private void button_Skill_RangeColor_Click(object sender, EventArgs e)
         {
             try
@@ -601,9 +608,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// 직선 범위 내 사거리 외곽선 원 색상 선택 대화상자를 열고 선택한 색상을 즉시 반영합니다.
-        /// </summary>
         private void button_Skill_AttackRangeColor_Click(object sender, EventArgs e)
         {
             try
@@ -627,9 +631,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '[사용안함]' 라디오 버튼 선택 시 모든 스킬 범위 오버레이를 비활성화합니다.
-        /// </summary>
         private void radioButton_Skill_None_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -649,9 +650,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '[자기 중심 범위]' 라디오 버튼 상태 변경 시 오버레이를 갱신합니다.
-        /// </summary>
         private void radioButton_SkillEnable_UserRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -681,9 +679,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '[직선 범위]' 라디오 버튼 상태 변경 시 오버레이 및 사거리 컨트롤 상태를 갱신합니다.
-        /// </summary>
         private void radioButton_Skill_StraightRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -713,9 +708,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '[지정 범위]' 라디오 버튼 상태 변경 시 오버레이를 갱신합니다.
-        /// </summary>
         private void radioButton_Skill_CustomRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -745,9 +737,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '범위 연마' 체크박스 변경 시 스킬 범위를 재계산하여 오버레이를 갱신합니다.
-        /// </summary>
         private void checkBox_Skill_RangeExtension_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -764,9 +753,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// '불시엔' 체크박스 변경 시 스킬 범위를 재계산하여 오버레이를 갱신합니다.
-        /// </summary>
         private void checkBox_Skill_RangeExtensionItem_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -783,9 +769,6 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        /// <summary>
-        /// 스킬 범위 투명도 트랙바 스크롤 시 오버레이 불투명도를 실시간으로 조절합니다.
-        /// </summary>
         private void Skill_RangeOpacity_Scroll(object sender, EventArgs e)
         {
             try
