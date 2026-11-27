@@ -135,6 +135,8 @@ namespace TalesWeaver_Cursor_Assistance
         private Timer _focusCheckTimer;
         /// <summary>INI 설정 파일의 전체 경로</summary>
         private readonly string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TalesWeaver_Cursor_Assistance_config.ini");
+        /// <summary>프로그램 시작 시 시스템 트레이로 최소화할지 여부</summary>
+        private bool _startMinimizedToTray;
         #endregion
 
         #region [3. 생성자 및 폼 생명주기 (Constructor & Lifecycle)]
@@ -218,6 +220,17 @@ namespace TalesWeaver_Cursor_Assistance
             }
             this.mIsLoadForm = true;
             this.EnsureFormLayoutSynced();
+
+            if (this._startMinimizedToTray)
+            {
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (this.IsDisposed) return;
+                    this.MinimizeToTray();
+                }));
+                return;
+            }
+
             this.Activate();
             this.Focus();
         }
@@ -518,6 +531,15 @@ namespace TalesWeaver_Cursor_Assistance
             {
             }
         }
+        private bool TryLoadStartMinimizedSetting(string key, string value)
+        {
+            if (key == "StartMinimizedToTray" && bool.TryParse(value, out bool parsedStartMinimized))
+            {
+                this._startMinimizedToTray = parsedStartMinimized;
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// INI 설정 파일에서 저장된 값을 읽어 필드에 반영하고 유효 범위를 보정합니다.
@@ -545,9 +567,10 @@ namespace TalesWeaver_Cursor_Assistance
                             this._onlyWhenTalesWeaverRunning = parsedOnlyTw;
                         }
                         else if (!this.TryLoadCursorSetting(key, value)
-                              && !this.TryLoadSkillSetting(key, value))
+                              && !this.TryLoadSkillSetting(key, value)
+                              && !this.TryLoadConvenienceSetting(key, value))
                         {
-                            this.TryLoadConvenienceSetting(key, value);
+                            this.TryLoadStartMinimizedSetting(key, value);
                         }
                     }
                 }
@@ -579,25 +602,26 @@ namespace TalesWeaver_Cursor_Assistance
                 string attackColorValue = ColorTranslator.ToHtml(this.Skill_AttackRangeColor);
 
                 string contents = string.Format(
-                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_AttackRangeColor={8}\nSkill_RangeExtension={9}\nSkill_RangeExtensionItem={10}\nSkill_Range={11}\nSkill_AttackRange={12}\nSkill_RangeOpacity={13}\nSpaceToEnter_Enable={14}\nSpaceToEnter_DurationMs={15}",
+                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_AttackRangeColor={8}\nSkill_RangeExtension={9}\nSkill_RangeExtensionItem={10}\nSkill_Range={11}\nSkill_AttackRange={12}\nSkill_RangeOpacity={13}\nSpaceToEnter_Enable={14}\nSpaceToEnter_DurationMs={15}\nStartMinimizedToTray={16}",
                     new object[]
                     {
-                        this._onlyWhenTalesWeaverRunning,
-                        this.CursorSize,
-                        this.CursorOpacity,
-                        cleanBase64,
-                        this.SkillEnable_UserRange,
-                        this.SkillEnable_StraightRange,
-                        this.SkillEnable_CustomRange,
-                        colorValue,
-                        attackColorValue,
-                        this.Skill_RangeExtension,
-                        this.Skill_RangeExtensionItem,
-                        this.Skill_Range,
-                        this.Skill_AttackRange,
-                        this.Skill_RangeOpacity,
-                        this._spaceToEnterEnabled,
-                        this._spaceToEnterDurationMs
+                this._onlyWhenTalesWeaverRunning,
+                this.CursorSize,
+                this.CursorOpacity,
+                cleanBase64,
+                this.SkillEnable_UserRange,
+                this.SkillEnable_StraightRange,
+                this.SkillEnable_CustomRange,
+                colorValue,
+                attackColorValue,
+                this.Skill_RangeExtension,
+                this.Skill_RangeExtensionItem,
+                this.Skill_Range,
+                this.Skill_AttackRange,
+                this.Skill_RangeOpacity,
+                this._spaceToEnterEnabled,
+                this._spaceToEnterDurationMs,
+                this._startMinimizedToTray
                     });
                 File.WriteAllText(this.configPath, contents);
             }
@@ -776,6 +800,10 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 this.checkBox_RunAtStartup.Checked = this.IsRegisteredInStartup();
             }
+            if (this.checkBox_StartMinimized != null)
+            {
+                this.checkBox_StartMinimized.Checked = this._startMinimizedToTray;
+            }
         }
 
         /// <summary>
@@ -795,6 +823,11 @@ namespace TalesWeaver_Cursor_Assistance
                     MessageBox.Show("시작 프로그램 등록 설정에 실패했습니다: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
                     this.checkBox_RunAtStartup.Checked = this.IsRegisteredInStartup();
                 }
+            }
+
+            if (this.checkBox_StartMinimized != null)
+            {
+                this._startMinimizedToTray = this.checkBox_StartMinimized.Checked;
             }
         }
 
