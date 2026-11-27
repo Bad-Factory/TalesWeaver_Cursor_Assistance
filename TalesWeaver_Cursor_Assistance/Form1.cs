@@ -602,26 +602,28 @@ namespace TalesWeaver_Cursor_Assistance
                 string attackColorValue = ColorTranslator.ToHtml(this.Skill_AttackRangeColor);
 
                 string contents = string.Format(
-                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_AttackRangeColor={8}\nSkill_RangeExtension={9}\nSkill_RangeExtensionItem={10}\nSkill_Range={11}\nSkill_AttackRange={12}\nSkill_RangeOpacity={13}\nSpaceToEnter_Enable={14}\nSpaceToEnter_DurationMs={15}\nStartMinimizedToTray={16}",
+                    "OnlyWhenTalesWeaverRunning={0}\nSize={1}\nOpacity={2}\nCursor={3}\nSkillEnable_UserRange={4}\nSkillEnable_StraightRange={5}\nSkillEnable_CustomRange={6}\nSkill_RangeColor={7}\nSkill_AttackRangeColor={8}\nSkill_RangeExtension={9}\nSkill_RangeExtensionItem={10}\nSkill_Range={11}\nSkill_AttackRange={12}\nSkill_RangeOpacity={13}\nSpaceToEnter_Enable={14}\nSpaceToEnter_DurationMs={15}\nStartMinimizedToTray={16}\nSkillOverlay_Enable={17}\nSkillOverlay_Hotkey={18}",
                     new object[]
                     {
-                this._onlyWhenTalesWeaverRunning,
-                this.CursorSize,
-                this.CursorOpacity,
-                cleanBase64,
-                this.SkillEnable_UserRange,
-                this.SkillEnable_StraightRange,
-                this.SkillEnable_CustomRange,
-                colorValue,
-                attackColorValue,
-                this.Skill_RangeExtension,
-                this.Skill_RangeExtensionItem,
-                this.Skill_Range,
-                this.Skill_AttackRange,
-                this.Skill_RangeOpacity,
-                this._spaceToEnterEnabled,
-                this._spaceToEnterDurationMs,
-                this._startMinimizedToTray
+                        this._onlyWhenTalesWeaverRunning,
+                        this.CursorSize,
+                        this.CursorOpacity,
+                        cleanBase64,
+                        this.SkillEnable_UserRange,
+                        this.SkillEnable_StraightRange,
+                        this.SkillEnable_CustomRange,
+                        colorValue,
+                        attackColorValue,
+                        this.Skill_RangeExtension,
+                        this.Skill_RangeExtensionItem,
+                        this.Skill_Range,
+                        this.Skill_AttackRange,
+                        this.Skill_RangeOpacity,
+                        this._spaceToEnterEnabled,
+                        this._spaceToEnterDurationMs,
+                        this._startMinimizedToTray,
+                        this._skillOverlayEnabled,
+                        (int)this._skillOverlayHotkey
                     });
                 File.WriteAllText(this.configPath, contents);
             }

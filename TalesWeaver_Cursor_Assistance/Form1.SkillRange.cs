@@ -13,11 +13,13 @@ namespace TalesWeaver_Cursor_Assistance
         /// <summary>현재 렌더링 중인 스킬 범위 비트맵 캐시</summary>
         private static Bitmap mBitmap_Skill;
 
-        /// <summary>자기 중심 범위(마름모) 활성화 여부</summary>
-        private bool SkillEnable_UserRange;
-        /// <summary>직선 범위(타원, 1.7배 보정) 활성화 여부</summary>
+        /// <summary>스킬 범위 오버레이 사용 여부 (기본값: false = 미사용)</summary>
+        private bool _skillOverlayEnabled = false;
+        /// <summary>자기 중심 범위(마름모) 모드 선택 여부 (기본값: true)</summary>
+        private bool SkillEnable_UserRange = true;
+        /// <summary>직선 범위(타원, 1.7배 보정) 모드 선택 여부</summary>
         private bool SkillEnable_StraightRange;
-        /// <summary>지정 범위(마우스 추적 타원) 활성화 여부</summary>
+        /// <summary>지정 범위(마우스 추적 타원) 모드 선택 여부</summary>
         private bool SkillEnable_CustomRange;
         /// <summary>사용자 지정 스킬 범위 색상 (null이면 모드별 기본색 사용)</summary>
         private Color? Skill_CustomColor = null;
@@ -41,16 +43,26 @@ namespace TalesWeaver_Cursor_Assistance
         private int Skill_Range_Min;
         /// <summary>스킬 범위 세로 최대 픽셀 제한</summary>
         private int Skill_Range_Max;
+        /// <summary>INI 로드 시 SkillOverlay_Enable 키 존재 여부를 기록하는 내부 플래그</summary>
+        private bool _hasExplicitSkillOverlayEnableInIni;
+        /// <summary>스킬 범위 오버레이 토글 단축키 (기본값: Keys.None)</summary>
+        private Keys _skillOverlayHotkey = Keys.None;
+        /// <summary>단축키 입력 대기 상태 여부</summary>
+        private bool _isCapturingSkillOverlayHotkey = false;
         #endregion
 
         #region [2. 스킬 범위 모듈 초기화 및 해제]
         /// <summary>
-        /// 스킬 범위 오버레이 폼 및 기본 상태값을 초기화합니다.
+        /// 스킬 범위 오버레이 폼 및 기본 상태값을 초기화합니다(오버레이 미사용, 자기중심 기본 선택).
         /// </summary>
         private void InitializeSkillModule()
         {
             this.mSkillForm = new GdiForm();
-            this.SkillEnable_UserRange = false;
+            this._skillOverlayEnabled = false;
+            this._hasExplicitSkillOverlayEnableInIni = false;
+            this._skillOverlayHotkey = Keys.None;
+            this._isCapturingSkillOverlayHotkey = false;
+            this.SkillEnable_UserRange = true;
             this.SkillEnable_StraightRange = false;
             this.SkillEnable_CustomRange = false;
             this.Skill_CustomColor = null;
@@ -65,10 +77,129 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
+        /// 스킬 범위 오버레이가 사용 상태이고 최소 1개의 범위 모드가 선택되었는지 반환합니다.
+        /// </summary>
+        private bool IsAnySkillModeActive()
+        {
+            return this._skillOverlayEnabled
+                && (this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange);
+        }
+
+        /// <summary>
+        /// 스킬 범위 오버레이 사용/미사용 버튼의 텍스트와 색상을 현재 상태에 맞게 동기화합니다.
+        /// </summary>
+        private void SyncSkillOverlayEnableUi()
+        {
+            if (this.button_SkillOverlay_Enable == null) return;
+
+            this.button_SkillOverlay_Enable.UseVisualStyleBackColor = false;
+            if (this._skillOverlayEnabled)
+            {
+                this.button_SkillOverlay_Enable.Text = "활성";
+                this.button_SkillOverlay_Enable.BackColor = Color.FromArgb(212, 237, 218);
+                this.button_SkillOverlay_Enable.ForeColor = Color.FromArgb(21, 87, 36);
+            }
+            else
+            {
+                this.button_SkillOverlay_Enable.Text = "비활성";
+                this.button_SkillOverlay_Enable.BackColor = Color.FromArgb(240, 240, 240);
+                this.button_SkillOverlay_Enable.ForeColor = SystemColors.ControlText;
+            }
+        }
+
+        /// <summary>
+        /// Keys 조합(Shift, Ctrl, Alt + 주키)을 사람이 읽기 쉬운 문자열로 변환합니다.
+        /// </summary>
+        private static string FormatHotkeyText(Keys hotkey)
+        {
+            if (hotkey == Keys.None) return "단축키 입력";
+
+            Keys modifiers = hotkey & Keys.Modifiers;
+            Keys mainKey = hotkey & Keys.KeyCode;
+
+            if (mainKey == Keys.None) return "단축키 입력";
+
+            System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+            if ((modifiers & Keys.Control) == Keys.Control) parts.Add("Ctrl");
+            if ((modifiers & Keys.Alt) == Keys.Alt) parts.Add("Alt");
+            if ((modifiers & Keys.Shift) == Keys.Shift) parts.Add("Shift");
+            parts.Add(mainKey.ToString());
+
+            return string.Join(" + ", parts);
+        }
+
+        /// <summary>
+        /// 현재 지정된 단축키를 단축키 입력 박스에 표시합니다.
+        /// </summary>
+        private void SyncSkillOverlayHotkeyUi()
+        {
+            if (this.textBox_SkillOverlay_Hotkey == null) return;
+
+            if (this._isCapturingSkillOverlayHotkey)
+            {
+                this.textBox_SkillOverlay_Hotkey.Text = "키 입력 대기...";
+                this.textBox_SkillOverlay_Hotkey.BackColor = Color.FromArgb(255, 248, 220);
+                return;
+            }
+
+            this.textBox_SkillOverlay_Hotkey.BackColor = SystemColors.Window;
+            this.textBox_SkillOverlay_Hotkey.Text = FormatHotkeyText(this._skillOverlayHotkey);
+        }
+
+        /// <summary>
+        /// 현재 OS/WinForms 기준 눌려 있는 수식키(Ctrl, Alt, Shift) 플래그를 반환합니다.
+        /// </summary>
+        private static Keys GetCurrentModifierKeys()
+        {
+            Keys mods = Keys.None;
+            if ((Control.ModifierKeys & Keys.Control) == Keys.Control) mods |= Keys.Control;
+            if ((Control.ModifierKeys & Keys.Alt) == Keys.Alt) mods |= Keys.Alt;
+            if ((Control.ModifierKeys & Keys.Shift) == Keys.Shift) mods |= Keys.Shift;
+            return mods;
+        }
+
+        /// <summary>
+        /// 주 키 코드와 현재 수식키 상태를 조합해 지정된 단축키와 일치하면 오버레이를 토글합니다.
+        /// 전역 키보드 훅(vkCode) 또는 KeyDown(e.KeyCode)에서 호출하세요.
+        /// </summary>
+        private bool TryToggleSkillOverlayByHotkey(Keys keyCode)
+        {
+            if (this._isCapturingSkillOverlayHotkey) return false;
+            if (this._skillOverlayHotkey == Keys.None) return false;
+
+            Keys mainKey = keyCode & Keys.KeyCode;
+            if (mainKey == Keys.None ||
+                mainKey == Keys.ShiftKey || mainKey == Keys.ControlKey || mainKey == Keys.Menu ||
+                mainKey == Keys.LShiftKey || mainKey == Keys.RShiftKey ||
+                mainKey == Keys.LControlKey || mainKey == Keys.RControlKey ||
+                mainKey == Keys.LMenu || mainKey == Keys.RMenu)
+            {
+                return false;
+            }
+
+            Keys currentModifiers = GetCurrentModifierKeys();
+            Keys combinedPressed = currentModifiers | mainKey;
+
+            if (combinedPressed != this._skillOverlayHotkey) return false;
+
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => this.button_SkillOverlay_Enable_Click(this.button_SkillOverlay_Enable, EventArgs.Empty)));
+            }
+            else
+            {
+                this.button_SkillOverlay_Enable_Click(this.button_SkillOverlay_Enable, EventArgs.Empty);
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Form1_Load 시 스킬 범위 관련 UI 컨트롤 상태를 동기화합니다.
         /// </summary>
         private void InitSkillUiOnLoad()
         {
+            this.SyncSkillOverlayEnableUi();
             if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
             if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
             if (this.checkBox_Skill_RangeExtension != null) this.checkBox_Skill_RangeExtension.Checked = this.Skill_RangeExtension;
@@ -76,10 +207,6 @@ namespace TalesWeaver_Cursor_Assistance
             if (this.radioButton_Skill_UserRange != null) this.radioButton_Skill_UserRange.Checked = this.SkillEnable_UserRange;
             if (this.radioButton_Skill_StraightRange != null) this.radioButton_Skill_StraightRange.Checked = this.SkillEnable_StraightRange;
             if (this.radioButton_Skill_CustomRange != null) this.radioButton_Skill_CustomRange.Checked = this.SkillEnable_CustomRange;
-            if (this.radioButton_Skill_None != null && !this.SkillEnable_UserRange && !this.SkillEnable_StraightRange && !this.SkillEnable_CustomRange)
-            {
-                this.radioButton_Skill_None.Checked = true;
-            }
             if (this.Skill_Range_Opacity != null)
             {
                 int opacityVal = Math.Max(this.Skill_Range_Opacity.Minimum, Math.Min(this.Skill_Range_Opacity.Maximum, (int)this.Skill_RangeOpacity));
@@ -87,6 +214,7 @@ namespace TalesWeaver_Cursor_Assistance
             }
             this.SyncAttackRangeControlState();
             this.SyncSkillColorButtonUi();
+            this.SyncSkillOverlayHotkeyUi();
             this.SyncAttackRangeColorButtonUi();
         }
 
@@ -95,6 +223,7 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         private void InitSkillUiOnShown()
         {
+            this.SyncSkillOverlayEnableUi();
             if (this.textBox_Skill_Range != null) this.textBox_Skill_Range.Text = this.Skill_Range.ToString();
             if (this.textBox_Skill_AttackRange != null) this.textBox_Skill_AttackRange.Text = this.Skill_AttackRange.ToString();
             if (this.Skill_Range_Opacity != null)
@@ -104,6 +233,7 @@ namespace TalesWeaver_Cursor_Assistance
             }
             this.SyncAttackRangeControlState();
             this.SyncSkillColorButtonUi();
+            this.SyncSkillOverlayHotkeyUi();
             this.SyncAttackRangeColorButtonUi();
         }
 
@@ -164,23 +294,22 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// 스킬 범위 모드가 활성화된 경우 오버레이를 표시합니다.
+        /// 스킬 범위 오버레이가 사용 상태이고 모드가 선택된 경우 오버레이를 표시합니다.
         /// </summary>
         private void ShowSkillOverlayIfEnabled()
         {
-            bool isSkillEnabled = this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange;
-            if (isSkillEnabled && this.mSkillForm != null && Form1.mBitmap_Skill != null)
+            if (this.IsAnySkillModeActive() && this.mSkillForm != null && Form1.mBitmap_Skill != null)
             {
                 this.PositionAndShowSkillForm();
             }
         }
 
         /// <summary>
-        /// 지정 범위 모드 활성화 시 마우스 좌표를 따라 스킬 오버레이 위치를 갱신합니다.
+        /// 지정 범위 모드 및 오버레이 사용 상태일 때 마우스 좌표를 따라 스킬 오버레이 위치를 갱신합니다.
         /// </summary>
         private void UpdateCustomSkillPosition(int x, int y)
         {
-            if (this.SkillEnable_CustomRange && this.mSkillForm != null && Form1.mBitmap_Skill != null)
+            if (this._skillOverlayEnabled && this.SkillEnable_CustomRange && this.mSkillForm != null && Form1.mBitmap_Skill != null)
             {
                 int width = Form1.mBitmap_Skill.Width;
                 int height = Form1.mBitmap_Skill.Height;
@@ -356,19 +485,33 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         private bool TryLoadSkillSetting(string key, string value)
         {
+            if (key == "SkillOverlay_Enable" && bool.TryParse(value, out bool parsedOverlayEnable))
+            {
+                this._skillOverlayEnabled = parsedOverlayEnable;
+                this._hasExplicitSkillOverlayEnableInIni = true;
+                return true;
+            }
+            if (key == "SkillOverlay_Hotkey" && int.TryParse(value, out int parsedHotkey))
+            {
+                this._skillOverlayHotkey = (Keys)parsedHotkey;
+                return true;
+            }
             if (key == "SkillEnable_UserRange" && bool.TryParse(value, out bool parsedUserRange))
             {
                 this.SkillEnable_UserRange = parsedUserRange;
+                if (!this._hasExplicitSkillOverlayEnableInIni && parsedUserRange) this._skillOverlayEnabled = true;
                 return true;
             }
             if (key == "SkillEnable_StraightRange" && bool.TryParse(value, out bool parsedStraightRange))
             {
                 this.SkillEnable_StraightRange = parsedStraightRange;
+                if (!this._hasExplicitSkillOverlayEnableInIni && parsedStraightRange) this._skillOverlayEnabled = true;
                 return true;
             }
             if (key == "SkillEnable_CustomRange" && bool.TryParse(value, out bool parsedCustomRange))
             {
                 this.SkillEnable_CustomRange = parsedCustomRange;
+                if (!this._hasExplicitSkillOverlayEnableInIni && parsedCustomRange) this._skillOverlayEnabled = true;
                 return true;
             }
             if (key == "Skill_RangeColor" && !string.IsNullOrEmpty(value) && !string.Equals(value, "Default", StringComparison.OrdinalIgnoreCase))
@@ -448,18 +591,18 @@ namespace TalesWeaver_Cursor_Assistance
         }
 
         /// <summary>
-        /// 선택된 스킬 범위 모드와 연마/아이템 옵션에 맞춰 스킬 범위 도형 비트맵을 생성하고 활성 상태 시 오버레이 폼에 출력합니다.
+        /// 스킬 범위 오버레이 사용 상태와 선택된 범위 모드·확장 옵션에 맞춰 도형 비트맵을 생성하고 오버레이 폼에 반영합니다.
         /// </summary>
         private void SetSkillShape()
         {
             try
             {
+                this.SyncSkillOverlayEnableUi();
                 this.SyncAttackRangeControlState();
                 this.SyncSkillColorButtonUi();
                 this.SyncAttackRangeColorButtonUi();
 
-                bool isAnyEnabled = this.SkillEnable_UserRange || this.SkillEnable_StraightRange || this.SkillEnable_CustomRange;
-                if (!isAnyEnabled)
+                if (!this.IsAnySkillModeActive())
                 {
                     if (this.mSkillForm != null)
                     {
@@ -585,6 +728,32 @@ namespace TalesWeaver_Cursor_Assistance
         #endregion
 
         #region [5. 스킬 범위 UI 이벤트 핸들러]
+        /// <summary>
+        /// 스킬 범위 오버레이의 사용/미사용 상태를 토글하고 버튼 UI와 오버레이 표시를 갱신합니다.
+        /// </summary>
+        private void button_SkillOverlay_Enable_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                this._skillOverlayEnabled = !this._skillOverlayEnabled;
+                this.SyncSkillOverlayEnableUi();
+
+                if (!this._skillOverlayEnabled)
+                {
+                    this.HideSkillOverlay();
+                }
+
+                this.SetSkillShape();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("스킬 범위 오버레이 사용 상태 변경 실패: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
+            }
+        }
+
+        /// <summary>
+        /// 스킬 범위 오버레이 색상을 선택하고 버튼 및 도형을 갱신합니다.
+        /// </summary>
         private void button_Skill_RangeColor_Click(object sender, EventArgs e)
         {
             try
@@ -608,6 +777,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 직선 범위 내 사거리 외곽선 원 색상을 선택하고 버튼 및 도형을 갱신합니다.
+        /// </summary>
         private void button_Skill_AttackRangeColor_Click(object sender, EventArgs e)
         {
             try
@@ -631,25 +803,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
-        private void radioButton_Skill_None_CheckedChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (this.radioButton_Skill_None != null && this.radioButton_Skill_None.Checked)
-                {
-                    this.SkillEnable_UserRange = false;
-                    this.SkillEnable_StraightRange = false;
-                    this.SkillEnable_CustomRange = false;
-                    this.SyncAttackRangeControlState();
-                    this.SetSkillShape();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("설정 적용 실패: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
-            }
-        }
-
+        /// <summary>
+        /// 자기 중심 범위 라디오 버튼 선택 변경 시 모드를 전환하고 도형 크기를 갱신합니다.
+        /// </summary>
         private void radioButton_SkillEnable_UserRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -679,6 +835,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 직선 범위 라디오 버튼 선택 변경 시 모드를 전환하고 도형 크기를 갱신합니다.
+        /// </summary>
         private void radioButton_Skill_StraightRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -708,6 +867,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 지정 범위 라디오 버튼 선택 변경 시 모드를 전환하고 도형 크기를 갱신합니다.
+        /// </summary>
         private void radioButton_Skill_CustomRange_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -737,6 +899,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 범위 연마(+20) 체크박스 상태 변경 시 옵션을 반영하고 도형을 다시 그립니다.
+        /// </summary>
         private void checkBox_Skill_RangeExtension_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -753,6 +918,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 불시엔(+7) 체크박스 상태 변경 시 옵션을 반영하고 도형을 다시 그립니다.
+        /// </summary>
         private void checkBox_Skill_RangeExtensionItem_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -769,6 +937,9 @@ namespace TalesWeaver_Cursor_Assistance
             }
         }
 
+        /// <summary>
+        /// 스킬 범위 투명도 트랙바 스크롤 시 불투명도 값을 갱신하고 오버레이를 다시 그립니다.
+        /// </summary>
         private void Skill_RangeOpacity_Scroll(object sender, EventArgs e)
         {
             try
@@ -783,6 +954,68 @@ namespace TalesWeaver_Cursor_Assistance
             {
                 MessageBox.Show("투명도 조절 중 오류 발생: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// 단축키 지정 박스 클릭 시 키 입력 대기 상태로 전환합니다.
+        /// </summary>
+        private void textBox_SkillOverlay_Hotkey_Click(object sender, EventArgs e)
+        {
+            this._isCapturingSkillOverlayHotkey = true;
+            this.SyncSkillOverlayHotkeyUi();
+            this.textBox_SkillOverlay_Hotkey?.Focus();
+        }
+
+        /// <summary>
+        /// 단축키 지정 박스에서 포커스가 벗어나면 입력 대기 상태를 해제하고 UI를 원복합니다.
+        /// </summary>
+        private void textBox_SkillOverlay_Hotkey_Leave(object sender, EventArgs e)
+        {
+            if (!this._isCapturingSkillOverlayHotkey) return;
+
+            this._isCapturingSkillOverlayHotkey = false;
+            this.SyncSkillOverlayHotkeyUi();
+        }
+
+        /// <summary>
+        /// 단축키 지정 박스에 포커스가 있을 때 입력된 키를 단축키로 등록하거나 해제합니다.
+        /// </summary>
+        private void textBox_SkillOverlay_Hotkey_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (!this._isCapturingSkillOverlayHotkey) return;
+
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+
+            Keys mainKey = e.KeyCode;
+
+            // 단독 수식키만 누른 상태면 주 키가 입력될 때까지 대기
+            if (mainKey == Keys.ShiftKey || mainKey == Keys.ControlKey || mainKey == Keys.Menu ||
+                mainKey == Keys.LShiftKey || mainKey == Keys.RShiftKey ||
+                mainKey == Keys.LControlKey || mainKey == Keys.RControlKey ||
+                mainKey == Keys.LMenu || mainKey == Keys.RMenu)
+            {
+                return;
+            }
+
+            // 수식키 없이 Esc / BackSpace / Delete를 누르면 단축키 해제
+            if (e.Modifiers == Keys.None && (mainKey == Keys.Escape || mainKey == Keys.Back || mainKey == Keys.Delete))
+            {
+                this._skillOverlayHotkey = Keys.None;
+            }
+            else
+            {
+                Keys mods = Keys.None;
+                if (e.Control) mods |= Keys.Control;
+                if (e.Alt) mods |= Keys.Alt;
+                if (e.Shift) mods |= Keys.Shift;
+
+                this._skillOverlayHotkey = mods | mainKey;
+            }
+
+            this._isCapturingSkillOverlayHotkey = false;
+            this.SyncSkillOverlayHotkeyUi();
+            this.ActiveControl = null;
         }
         #endregion
     }

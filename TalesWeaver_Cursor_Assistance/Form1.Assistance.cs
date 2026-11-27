@@ -183,33 +183,41 @@ namespace TalesWeaver_Cursor_Assistance
         /// </summary>
         private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0 && this._spaceToEnterEnabled)
+            if (nCode >= 0)
             {
                 int msg = wParam.ToInt32();
                 if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
                 {
                     int vkCode = Marshal.ReadInt32(lParam);
 
-                    if (IsTriggerNumberKey(vkCode) && this.IsFeatureActiveNow())
+                    if (this.TryToggleSkillOverlayByHotkey((Keys)vkCode))
                     {
-                        int duration = Math.Max(0, Math.Min(MAX_SPACE_TO_ENTER_DURATION_MS, this._spaceToEnterDurationMs));
-                        lock (this._spaceEnterLock)
-                        {
-                            this._spaceAsEnterUntilTick = GetSafeTickCount64() + duration;
-                        }
+                        return CallNextHookEx(this._keyboardHookId, nCode, wParam, lParam);
                     }
-                    else if (vkCode == VK_SPACE && this.IsFeatureActiveNow())
-                    {
-                        bool shouldConvert;
-                        lock (this._spaceEnterLock)
-                        {
-                            shouldConvert = GetSafeTickCount64() <= this._spaceAsEnterUntilTick;
-                        }
 
-                        if (shouldConvert)
+                    if (this._spaceToEnterEnabled)
+                    {
+                        if (IsTriggerNumberKey(vkCode) && this.IsFeatureActiveNow())
                         {
-                            SendEnterKey();
-                            return (IntPtr)1;
+                            int duration = Math.Max(0, Math.Min(MAX_SPACE_TO_ENTER_DURATION_MS, this._spaceToEnterDurationMs));
+                            lock (this._spaceEnterLock)
+                            {
+                                this._spaceAsEnterUntilTick = GetSafeTickCount64() + duration;
+                            }
+                        }
+                        else if (vkCode == VK_SPACE && this.IsFeatureActiveNow())
+                        {
+                            bool shouldConvert;
+                            lock (this._spaceEnterLock)
+                            {
+                                shouldConvert = GetSafeTickCount64() <= this._spaceAsEnterUntilTick;
+                            }
+
+                            if (shouldConvert)
+                            {
+                                SendEnterKey();
+                                return (IntPtr)1;
+                            }
                         }
                     }
                 }

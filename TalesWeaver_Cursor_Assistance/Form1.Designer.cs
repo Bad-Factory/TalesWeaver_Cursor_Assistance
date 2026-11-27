@@ -51,8 +51,10 @@
             this.linkLabel_CursorUrl = new global::System.Windows.Forms.LinkLabel();
             this.textBox_CursorBase64 = new global::System.Windows.Forms.TextBox();
 
+            /// <summary>스킬 범위 오버레이 설정 그룹박스 및 하위 컨트롤 인스턴스 생성</summary>
             this.groupBox_Skill = new global::System.Windows.Forms.GroupBox();
-            this.radioButton_Skill_None = new global::System.Windows.Forms.RadioButton();
+            this.button_SkillOverlay_Enable = new global::System.Windows.Forms.Button();
+            this.textBox_SkillOverlay_Hotkey = new global::System.Windows.Forms.TextBox();
             this.radioButton_Skill_UserRange = new global::System.Windows.Forms.RadioButton();
             this.button_Skill_RangeColor = new global::System.Windows.Forms.Button();
             this.radioButton_Skill_StraightRange = new global::System.Windows.Forms.RadioButton();
@@ -223,7 +225,8 @@
             #endregion
 
             #region [2-6. 센터 스킬 영역 오버레이 그룹 UI 배치 및 속성 설정 (groupBox_Skill)]
-            this.groupBox_Skill.Controls.Add(this.radioButton_Skill_None);
+            this.groupBox_Skill.Controls.Add(this.button_SkillOverlay_Enable);
+            this.groupBox_Skill.Controls.Add(this.textBox_SkillOverlay_Hotkey);
             this.groupBox_Skill.Controls.Add(this.radioButton_Skill_UserRange);
             this.groupBox_Skill.Controls.Add(this.button_Skill_RangeColor);
             this.groupBox_Skill.Controls.Add(this.radioButton_Skill_StraightRange);
@@ -241,26 +244,41 @@
             this.groupBox_Skill.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             this.groupBox_Skill.Location = new global::System.Drawing.Point(15, 375);
             this.groupBox_Skill.Name = "groupBox_Skill";
-            this.groupBox_Skill.Size = new global::System.Drawing.Size(330, 252);
+            this.groupBox_Skill.Size = new global::System.Drawing.Size(330, 278);
             this.groupBox_Skill.TabIndex = 3;
             this.groupBox_Skill.TabStop = false;
             this.groupBox_Skill.Text = "스킬 범위 오버레이";
             this.groupBox_Skill.UseCompatibleTextRendering = true;
 
-            this.radioButton_Skill_None.AutoSize = true;
-            this.radioButton_Skill_None.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.radioButton_Skill_None.Location = new global::System.Drawing.Point(15, 28);
-            this.radioButton_Skill_None.Name = "radioButton_Skill_None";
-            this.radioButton_Skill_None.Size = new global::System.Drawing.Size(80, 20);
-            this.radioButton_Skill_None.TabIndex = 0;
-            this.radioButton_Skill_None.TabStop = true;
-            this.radioButton_Skill_None.Text = "사용안함";
-            this.radioButton_Skill_None.UseVisualStyleBackColor = true;
-            this.radioButton_Skill_None.CheckedChanged += new System.EventHandler(this.radioButton_Skill_None_CheckedChanged);
+            /// <summary>스킬 범위 오버레이 사용/미사용 토글 버튼 배치 및 이벤트 연결</summary>
+            this.button_SkillOverlay_Enable.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.button_SkillOverlay_Enable.Location = new global::System.Drawing.Point(15, 22);
+            this.button_SkillOverlay_Enable.Name = "button_SkillOverlay_Enable";
+            this.button_SkillOverlay_Enable.Size = new global::System.Drawing.Size(148, 26);
+            this.button_SkillOverlay_Enable.TabIndex = 0;
+            this.button_SkillOverlay_Enable.Text = "비활성";
+            this.button_SkillOverlay_Enable.UseCompatibleTextRendering = true;
+            this.button_SkillOverlay_Enable.UseVisualStyleBackColor = false;
+            this.button_SkillOverlay_Enable.Click += new System.EventHandler(this.button_SkillOverlay_Enable_Click);
 
+            /// <summary>스킬 범위 오버레이 사용/미사용 단축키 박스 배치 및 이벤트 연결</summary>
+            this.textBox_SkillOverlay_Hotkey.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.textBox_SkillOverlay_Hotkey.Location = new global::System.Drawing.Point(169, 22);
+            this.textBox_SkillOverlay_Hotkey.Name = "textBox_SkillOverlay_Hotkey";
+            this.textBox_SkillOverlay_Hotkey.ReadOnly = true;
+            this.textBox_SkillOverlay_Hotkey.Size = new global::System.Drawing.Size(146, 26);
+            this.textBox_SkillOverlay_Hotkey.TabIndex = 13;
+            this.textBox_SkillOverlay_Hotkey.Text = "단축키 입력";
+            this.textBox_SkillOverlay_Hotkey.TextAlign = global::System.Windows.Forms.HorizontalAlignment.Center;
+            this.textBox_SkillOverlay_Hotkey.Click += new System.EventHandler(this.textBox_SkillOverlay_Hotkey_Click);
+            this.textBox_SkillOverlay_Hotkey.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox_SkillOverlay_Hotkey_KeyDown);
+            this.textBox_SkillOverlay_Hotkey.Leave += new System.EventHandler(this.textBox_SkillOverlay_Hotkey_Leave);
+
+            /// <summary>자기중심 범위 라디오 버튼 기본 선택 설정</summary>
             this.radioButton_Skill_UserRange.AutoSize = true;
+            this.radioButton_Skill_UserRange.Checked = true;
             this.radioButton_Skill_UserRange.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.radioButton_Skill_UserRange.Location = new global::System.Drawing.Point(165, 28);
+            this.radioButton_Skill_UserRange.Location = new global::System.Drawing.Point(15, 55);
             this.radioButton_Skill_UserRange.Name = "radioButton_Skill_UserRange";
             this.radioButton_Skill_UserRange.Size = new global::System.Drawing.Size(80, 20);
             this.radioButton_Skill_UserRange.TabIndex = 1;
@@ -269,19 +287,9 @@
             this.radioButton_Skill_UserRange.UseVisualStyleBackColor = true;
             this.radioButton_Skill_UserRange.CheckedChanged += new System.EventHandler(this.radioButton_SkillEnable_UserRange_CheckedChanged);
 
-            this.button_Skill_RangeColor.Font = new global::System.Drawing.Font("Segoe UI", 8f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_Skill_RangeColor.Location = new global::System.Drawing.Point(275, 25);
-            this.button_Skill_RangeColor.Name = "button_Skill_RangeColor";
-            this.button_Skill_RangeColor.Size = new global::System.Drawing.Size(40, 24);
-            this.button_Skill_RangeColor.TabIndex = 11;
-            this.button_Skill_RangeColor.Text = "색상";
-            this.button_Skill_RangeColor.UseCompatibleTextRendering = true;
-            this.button_Skill_RangeColor.UseVisualStyleBackColor = false;
-            this.button_Skill_RangeColor.Click += new System.EventHandler(this.button_Skill_RangeColor_Click);
-
             this.radioButton_Skill_StraightRange.AutoSize = true;
             this.radioButton_Skill_StraightRange.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.radioButton_Skill_StraightRange.Location = new global::System.Drawing.Point(15, 58);
+            this.radioButton_Skill_StraightRange.Location = new global::System.Drawing.Point(15, 84);
             this.radioButton_Skill_StraightRange.Name = "radioButton_Skill_StraightRange";
             this.radioButton_Skill_StraightRange.Size = new global::System.Drawing.Size(110, 20);
             this.radioButton_Skill_StraightRange.TabIndex = 2;
@@ -292,7 +300,7 @@
 
             this.radioButton_Skill_CustomRange.AutoSize = true;
             this.radioButton_Skill_CustomRange.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.radioButton_Skill_CustomRange.Location = new global::System.Drawing.Point(165, 58);
+            this.radioButton_Skill_CustomRange.Location = new global::System.Drawing.Point(165, 84);
             this.radioButton_Skill_CustomRange.Name = "radioButton_Skill_CustomRange";
             this.radioButton_Skill_CustomRange.Size = new global::System.Drawing.Size(80, 20);
             this.radioButton_Skill_CustomRange.TabIndex = 3;
@@ -301,9 +309,19 @@
             this.radioButton_Skill_CustomRange.UseVisualStyleBackColor = true;
             this.radioButton_Skill_CustomRange.CheckedChanged += new System.EventHandler(this.radioButton_Skill_CustomRange_CheckedChanged);
 
+            this.button_Skill_RangeColor.Font = new global::System.Drawing.Font("Segoe UI", 8f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
+            this.button_Skill_RangeColor.Location = new global::System.Drawing.Point(275, 81);
+            this.button_Skill_RangeColor.Name = "button_Skill_RangeColor";
+            this.button_Skill_RangeColor.Size = new global::System.Drawing.Size(40, 24);
+            this.button_Skill_RangeColor.TabIndex = 11;
+            this.button_Skill_RangeColor.Text = "색상";
+            this.button_Skill_RangeColor.UseCompatibleTextRendering = true;
+            this.button_Skill_RangeColor.UseVisualStyleBackColor = false;
+            this.button_Skill_RangeColor.Click += new System.EventHandler(this.button_Skill_RangeColor_Click);
+
             this.panel_SkillSeparator.BorderStyle = global::System.Windows.Forms.BorderStyle.None;
             this.panel_SkillSeparator.BackColor = global::System.Drawing.Color.LightGray;
-            this.panel_SkillSeparator.Location = new global::System.Drawing.Point(15, 86);
+            this.panel_SkillSeparator.Location = new global::System.Drawing.Point(15, 112);
             this.panel_SkillSeparator.Name = "panel_SkillSeparator";
             this.panel_SkillSeparator.Size = new global::System.Drawing.Size(300, 1);
             this.panel_SkillSeparator.TabIndex = 4;
@@ -311,7 +329,7 @@
 
             this.checkBox_Skill_RangeExtension.AutoSize = true;
             this.checkBox_Skill_RangeExtension.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.checkBox_Skill_RangeExtension.Location = new global::System.Drawing.Point(15, 98);
+            this.checkBox_Skill_RangeExtension.Location = new global::System.Drawing.Point(15, 124);
             this.checkBox_Skill_RangeExtension.Name = "checkBox_Skill_RangeExtension";
             this.checkBox_Skill_RangeExtension.Size = new global::System.Drawing.Size(82, 24);
             this.checkBox_Skill_RangeExtension.TabIndex = 5;
@@ -321,7 +339,7 @@
 
             this.checkBox_Skill_RangeExtensionItem.AutoSize = true;
             this.checkBox_Skill_RangeExtensionItem.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.checkBox_Skill_RangeExtensionItem.Location = new global::System.Drawing.Point(165, 98);
+            this.checkBox_Skill_RangeExtensionItem.Location = new global::System.Drawing.Point(165, 124);
             this.checkBox_Skill_RangeExtensionItem.Name = "checkBox_Skill_RangeExtensionItem";
             this.checkBox_Skill_RangeExtensionItem.Size = new global::System.Drawing.Size(65, 24);
             this.checkBox_Skill_RangeExtensionItem.TabIndex = 6;
@@ -331,7 +349,7 @@
 
             this.textBox_Skill_Range.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             this.textBox_Skill_Range.ImeMode = global::System.Windows.Forms.ImeMode.Disable;
-            this.textBox_Skill_Range.Location = new global::System.Drawing.Point(15, 130);
+            this.textBox_Skill_Range.Location = new global::System.Drawing.Point(15, 156);
             this.textBox_Skill_Range.MaxLength = 2;
             this.textBox_Skill_Range.Name = "textBox_Skill_Range";
             this.textBox_Skill_Range.Size = new global::System.Drawing.Size(130, 27);
@@ -340,7 +358,7 @@
 
             this.label_Skill_Range.AutoSize = true;
             this.label_Skill_Range.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.label_Skill_Range.Location = new global::System.Drawing.Point(155, 134);
+            this.label_Skill_Range.Location = new global::System.Drawing.Point(155, 160);
             this.label_Skill_Range.Name = "label_Skill_Range";
             this.label_Skill_Range.Size = new global::System.Drawing.Size(150, 20);
             this.label_Skill_Range.Text = "스킬 범위값 (예: 30~60)";
@@ -348,7 +366,7 @@
             this.textBox_Skill_AttackRange.Enabled = false;
             this.textBox_Skill_AttackRange.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
             this.textBox_Skill_AttackRange.ImeMode = global::System.Windows.Forms.ImeMode.Disable;
-            this.textBox_Skill_AttackRange.Location = new global::System.Drawing.Point(15, 166);
+            this.textBox_Skill_AttackRange.Location = new global::System.Drawing.Point(15, 192);
             this.textBox_Skill_AttackRange.MaxLength = 2;
             this.textBox_Skill_AttackRange.Name = "textBox_Skill_AttackRange";
             this.textBox_Skill_AttackRange.Size = new global::System.Drawing.Size(130, 27);
@@ -359,7 +377,7 @@
             this.label_Skill_AttackRange.AutoSize = true;
             this.label_Skill_AttackRange.Enabled = false;
             this.label_Skill_AttackRange.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.label_Skill_AttackRange.Location = new global::System.Drawing.Point(155, 170);
+            this.label_Skill_AttackRange.Location = new global::System.Drawing.Point(155, 196);
             this.label_Skill_AttackRange.Name = "label_Skill_AttackRange";
             this.label_Skill_AttackRange.Size = new global::System.Drawing.Size(115, 20);
             this.label_Skill_AttackRange.TabIndex = 9;
@@ -368,7 +386,7 @@
 
             this.button_Skill_AttackRangeColor.Enabled = false;
             this.button_Skill_AttackRangeColor.Font = new global::System.Drawing.Font("Segoe UI", 8f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_Skill_AttackRangeColor.Location = new global::System.Drawing.Point(275, 167);
+            this.button_Skill_AttackRangeColor.Location = new global::System.Drawing.Point(275, 193);
             this.button_Skill_AttackRangeColor.Name = "button_Skill_AttackRangeColor";
             this.button_Skill_AttackRangeColor.Size = new global::System.Drawing.Size(40, 24);
             this.button_Skill_AttackRangeColor.TabIndex = 12;
@@ -377,7 +395,7 @@
             this.button_Skill_AttackRangeColor.UseVisualStyleBackColor = false;
             this.button_Skill_AttackRangeColor.Click += new System.EventHandler(this.button_Skill_AttackRangeColor_Click);
 
-            this.Skill_Range_Opacity.Location = new global::System.Drawing.Point(15, 202);
+            this.Skill_Range_Opacity.Location = new global::System.Drawing.Point(15, 228);
             this.Skill_Range_Opacity.Name = "Skill_Range_Opacity";
             this.Skill_Range_Opacity.Size = new global::System.Drawing.Size(130, 45);
             this.Skill_Range_Opacity.Maximum = 200;
@@ -386,7 +404,7 @@
 
             this.label_Skill_RangeOpacity.AutoSize = true;
             this.label_Skill_RangeOpacity.Font = new global::System.Drawing.Font("Segoe UI", 10f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.label_Skill_RangeOpacity.Location = new global::System.Drawing.Point(155, 207);
+            this.label_Skill_RangeOpacity.Location = new global::System.Drawing.Point(155, 233);
             this.label_Skill_RangeOpacity.Name = "label_Skill_RangeOpacity";
             this.label_Skill_RangeOpacity.Size = new global::System.Drawing.Size(150, 25);
             this.label_Skill_RangeOpacity.TabIndex = 10;
@@ -397,7 +415,7 @@
             this.groupBox_SpaceToEnter.Controls.Add(this.textBox_SpaceToEnter_Duration);
             this.groupBox_SpaceToEnter.Controls.Add(this.label_SpaceToEnter_Duration);
             this.groupBox_SpaceToEnter.Font = new global::System.Drawing.Font("Segoe UI", 11f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.groupBox_SpaceToEnter.Location = new global::System.Drawing.Point(15, 637);
+            this.groupBox_SpaceToEnter.Location = new global::System.Drawing.Point(15, 663);
             this.groupBox_SpaceToEnter.Name = "groupBox_SpaceToEnter";
             this.groupBox_SpaceToEnter.Size = new global::System.Drawing.Size(330, 88);
             this.groupBox_SpaceToEnter.TabIndex = 4;
@@ -438,7 +456,7 @@
 
             this.checkBox_RunAtStartup.AutoSize = true;
             this.checkBox_RunAtStartup.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.checkBox_RunAtStartup.Location = new global::System.Drawing.Point(15, 735);
+            this.checkBox_RunAtStartup.Location = new global::System.Drawing.Point(15, 761);
             this.checkBox_RunAtStartup.Name = "checkBox_RunAtStartup";
             this.checkBox_RunAtStartup.Size = new global::System.Drawing.Size(130, 20);
             this.checkBox_RunAtStartup.TabIndex = 5;
@@ -449,7 +467,7 @@
 
             this.checkBox_StartMinimized.AutoSize = true;
             this.checkBox_StartMinimized.Font = new global::System.Drawing.Font("Segoe UI", 9f, global::System.Drawing.FontStyle.Regular, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.checkBox_StartMinimized.Location = new global::System.Drawing.Point(15, 759);
+            this.checkBox_StartMinimized.Location = new global::System.Drawing.Point(15, 785);
             this.checkBox_StartMinimized.Name = "checkBox_StartMinimized";
             this.checkBox_StartMinimized.Size = new global::System.Drawing.Size(150, 20);
             this.checkBox_StartMinimized.TabIndex = 6;
@@ -459,7 +477,7 @@
             this.checkBox_StartMinimized.CheckedChanged += new System.EventHandler(this.checkBox_StartMinimized_CheckedChanged);
 
             this.button_Apply.Font = new global::System.Drawing.Font("Segoe UI", 9.5f, global::System.Drawing.FontStyle.Bold, global::System.Drawing.GraphicsUnit.Point, 0);
-            this.button_Apply.Location = new global::System.Drawing.Point(205, 735);
+            this.button_Apply.Location = new global::System.Drawing.Point(205, 761);
             this.button_Apply.Name = "button_Apply";
             this.button_Apply.Size = new global::System.Drawing.Size(140, 44);
             this.button_Apply.TabIndex = 7;
@@ -500,7 +518,7 @@
             base.AutoScaleMode = global::System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
             this.AutoSize = true;
-            base.ClientSize = new global::System.Drawing.Size(360, 794);
+            base.ClientSize = new global::System.Drawing.Size(360, 820);
             base.KeyPreview = true;
 
             base.Controls.Add(this.button_OnlyWhenTalesWeaverRunning);
@@ -550,6 +568,9 @@
             this.toolTip1.SetToolTip(this.Skill_Range_Opacity, "스킬 범위 오버레이의 투명도를 슬라이더로 조절합니다 (0~255)");
             this.toolTip1.SetToolTip(this.comboBox_CursorPreset, "원하는 커서 디자인 프리셋을 선택하거나 직접 입력을 선택하세요");
             this.toolTip1.SetToolTip(this.textBox_CursorBase64, "커서 이미지의 Base64 문자열 코드를 입력합니다");
+            /// <summary>스킬 범위 오버레이 사용/미사용 토글 버튼 툴팁 설정</summary>
+            this.toolTip1.SetToolTip(this.button_SkillOverlay_Enable, "스킬 범위 오버레이의 사용/미사용 상태를 전환합니다");
+            this.toolTip1.SetToolTip(this.textBox_SkillOverlay_Hotkey, "클릭 후 전환에 쓸 단축키를 누르세요 (Esc/BackSpace/Delete로 해제)");
             this.toolTip1.SetToolTip(this.radioButton_Skill_UserRange, "화면에 자기 중심 범위 오버레이를 표시합니다");
             this.toolTip1.SetToolTip(this.button_Skill_RangeColor, "스킬 범위 오버레이 색상을 선택합니다");
             this.toolTip1.SetToolTip(this.radioButton_Skill_StraightRange, "화면에 직선 범위 오버레이를 표시합니다");
@@ -628,8 +649,10 @@
         #region [3-6. 센터 스킬 영역 오버레이 관련 필드]
         /// <summary>센터 스킬 영역 오버레이 설정 그룹박스</summary>
         private global::System.Windows.Forms.GroupBox groupBox_Skill;
-        /// <summary>사용안함 라디오 버튼</summary>
-        private global::System.Windows.Forms.RadioButton radioButton_Skill_None;
+        /// <summary>스킬 범위 오버레이 사용/미사용 토글 버튼</summary>
+        private global::System.Windows.Forms.Button button_SkillOverlay_Enable;
+        /// <summary>스킬 범위 오버레이 활성/비활성 전환 단축키 입력 박스</summary>
+        private global::System.Windows.Forms.TextBox textBox_SkillOverlay_Hotkey;
         /// <summary>자기 중심 범위 라디오 버튼</summary>
         private global::System.Windows.Forms.RadioButton radioButton_Skill_UserRange;
         /// <summary>스킬 범위 오버레이 색상 변경 버튼</summary>
